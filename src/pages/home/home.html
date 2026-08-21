@@ -1,0 +1,198 @@
+<!-- ============================================================ -->
+<!-- POPUP DETAIL MATERIAL — dijadikan pola untuk popup lain      -->
+<!-- (popup-history-material, popup-request-po, dst. menyusul)    -->
+<!-- ============================================================ -->
+<div id="popup-detail-material"
+  class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+  <div class="app-overlay-panel bg-white w-full sm:max-w-md sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+      <div class="font-bold text-ink-primary">Detail Barang</div>
+      <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+    </div>
+
+    <div class="p-3 space-y-2">
+      <div class="card-surface p-3">
+        <div id="popup_mat_name" class="text-base font-bold text-ink-primary mb-1.5">-</div>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span id="popup_mat_code" class="hidden">-</span>
+          <span id="popup_mat_category" class="text-xs text-ink-secondary font-medium">-</span>
+          <span id="popup_mat_status"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5">
+        <div class="bg-surface-raised border border-ink-faint rounded-md p-2.5 text-center">
+          <div class="text-[10px] text-ink-secondary font-bold tracking-wide mb-0.5">STOK SAAT INI</div>
+          <div id="popup_mat_stok_val" class="text-2xl font-extrabold text-ink-primary leading-tight">-</div>
+        </div>
+        <div id="popup_rack_section" class="bg-blue-50 border border-blue-300 rounded-md p-2.5 text-center">
+          <div class="text-[10px] text-blue-700 font-bold tracking-wide mb-0.5">LOKASI RAK</div>
+          <div id="popup_mat_rack" class="text-xl font-extrabold text-blue-800 leading-tight">-</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-1.5">
+        <div class="bg-surface-raised border border-ink-faint rounded-md p-2 text-center">
+          <div class="text-[10px] text-ink-muted font-semibold">STOK MINIMAL</div>
+          <div id="popup_mat_min_val" class="text-sm font-bold text-ink-secondary">-</div>
+        </div>
+        <div class="bg-surface-raised border border-ink-faint rounded-md p-2 text-center">
+          <div class="text-[10px] text-ink-muted font-semibold">STOK MAKSIMAL</div>
+          <div id="popup_mat_max_val" class="text-sm font-bold text-ink-secondary">-</div>
+        </div>
+      </div>
+
+      <div class="card-surface overflow-hidden">
+        <div class="px-3 py-2.5 flex items-center justify-between">
+          <span class="font-bold text-sm text-ink-primary">Riwayat Barang</span>
+          <span id="popup_history_period" class="text-xs font-medium text-ink-secondary">3 Bulan</span>
+        </div>
+        <div id="popup_mat_history" class="border-t border-ink-faint">
+          <div class="tbl-empty">Memuat...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END POPUP -->
+
+
+<!-- ============================================================ -->
+<!-- PAGE CONTENT                                                 -->
+<!-- ============================================================ -->
+<div id="home-page-content" class="pb-24">
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-4 gap-1 p-2">
+    <div id="home_card_ok" data-status="ok"
+      class="hc-card card-surface text-center py-2.5 px-1 cursor-pointer relative overflow-hidden border-green-200">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-success"></div>
+      <div class="fs-11 font-bold text-ink-secondary tracking-wide mb-0.5">AMAN</div>
+      <div id="home_count_ok" class="text-success text-[28px] font-extrabold leading-none">0</div>
+    </div>
+    <div id="home_card_low" data-status="low"
+      class="hc-card card-surface text-center py-2.5 px-1 cursor-pointer relative overflow-hidden border-orange-200">
+      <!-- warning (orange), BUKAN primary/hijau -- match border-orange-200. Sebelum
+           retint hijau (2026-08-21) --color-primary lama MEMANG orange, jadi konsisten
+           dgn border-nya; sekarang primary sudah hijau, kartu status "TIPIS" ini harus
+           pindah ke token warning supaya tetap selaras dgn border oranye-nya. -->
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-warning"></div>
+      <div class="fs-11 font-bold text-ink-secondary tracking-wide mb-0.5">TIPIS</div>
+      <div id="home_count_low" class="text-warning text-[28px] font-extrabold leading-none">0</div>
+    </div>
+    <div id="home_card_empty" data-status="empty"
+      class="hc-card card-surface text-center py-2.5 px-1 cursor-pointer relative overflow-hidden border-red-200">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-danger"></div>
+      <div class="fs-11 font-bold text-ink-secondary tracking-wide mb-0.5">HABIS</div>
+      <div id="home_count_empty" class="text-danger text-[28px] font-extrabold leading-none">0</div>
+    </div>
+    <div id="home_card_overstock" data-status="overstock"
+      class="hc-card card-surface text-center py-2.5 px-1 cursor-pointer relative overflow-hidden border-blue-200">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-info"></div>
+      <div class="fs-11 font-bold text-ink-secondary tracking-wide mb-0.5">PENUH</div>
+      <div id="home_count_overstock" class="text-info text-[28px] font-extrabold leading-none">0</div>
+    </div>
+  </div>
+
+  <!-- Material Table Section -->
+  <div class="px-3 pb-4">
+    <div class="card-surface overflow-hidden">
+      <div class="p-3.5 pb-0">
+        <div class="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+          <div class="flex items-center gap-2 min-w-0 flex-wrap">
+            <span class="section-title">Daftar Barang</span>
+            <span class="fs-12 text-ink-faint">|</span>
+            <span id="home_total_count" class="section-count">0</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <a href="#" id="link-material-master" title="Master Material" class="flex items-center text-cyan-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </a>
+            <a href="#" id="link-purchase-request" title="Daftar Request Order" class="flex items-center text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </a>
+            <button id="btn-refresh-home" title="Refresh" class="text-success">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M21 2v6h-6" />
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                <path d="M3 22v-6h6" />
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Period filter -->
+        <div class="grid grid-cols-3 rounded-md overflow-hidden border border-ink-faint mb-2.5" id="home-period-group">
+          <button data-months="1"
+            class="home-period-btn py-2 text-sm font-bold bg-surface-raised text-ink-muted border-r border-ink-faint">1
+            Bln</button>
+          <button data-months="2"
+            class="home-period-btn py-2 text-sm font-bold bg-surface-raised text-ink-muted border-r border-ink-faint">2
+            Bln</button>
+          <button data-months="5" class="home-period-btn py-2 text-sm font-bold bg-surface-raised text-ink-muted">5
+            Bln</button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-input-wrap mb-3.5">
+          <input id="home_search" type="text" placeholder="Cari nama barang..." class="search-input">
+          <svg class="search-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="tbl-dark tbl-bordered" style="min-width:820px;">
+          <thead>
+            <tr>
+              <th class="td-center" style="width:36px;">NO</th>
+              <th class="td-left" style="min-width:160px;">NAMA BARANG</th>
+              <th class="td-center" style="min-width:60px;">MASUK</th>
+              <th class="td-center" style="min-width:60px;">KELUAR</th>
+              <th class="td-center" style="min-width:70px;">STOK</th>
+              <th class="td-center" style="min-width:60px;">MIN</th>
+              <th class="td-center" style="min-width:60px;">MAX</th>
+              <th class="td-center" style="min-width:60px;">PO</th>
+              <th class="td-center" style="min-width:90px;">BUTUH PO</th>
+              <th class="td-center" style="min-width:56px;">OPSI</th>
+            </tr>
+          </thead>
+          <tbody id="home_mat_table">
+            <tr>
+              <td colspan="10" class="tbl-empty">Memuat data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Bar -->
+  <div id="po_floating_bar"
+    class="hidden fixed bottom-0 left-0 right-0 z-[90] bg-white border-t-2 border-primary shadow-[0_-4px_12px_rgba(0,0,0,.08)] p-3">
+    <div class="flex items-center gap-3 max-w-xl mx-auto">
+      <button id="btn-po-clear"
+        class="flex-1 py-3 border border-ink-faint bg-white text-ink-secondary rounded-md font-bold text-sm">Batal</button>
+      <button id="btn-po-request"
+        class="flex-1 py-3 border-none bg-primary text-white rounded-md font-extrabold text-sm shadow">REQUEST
+        PO</button>
+    </div>
+  </div>
+</div>

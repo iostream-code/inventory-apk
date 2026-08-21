@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src * gap: 'unsafe-inline' 'unsafe-eval' data: blob:;" />
+  <title>Inventory</title>
+</head>
+
+<body>
+  <!-- cordova.js disuntik otomatis oleh Cordova CLI saat `cordova prepare`, jangan dihapus -->
+  <script src="cordova.js"></script>
+
+  <!-- Shell aplikasi: #app-navbar = navbar atas (jam, status internet, notif, logout)
+       #app-tabs = tab navigasi (Stock/Partner/Logo), #app-page = kontainer halaman aktif
+       (di-render oleh router), #app-overlays = tempat dialog/popup/toast custom di-mount -->
+  <div id="app">
+    <header id="app-navbar" class="hidden"></header>
+    <nav id="app-tabs" class="hidden"></nav>
+    <main id="app-page"></main>
+  </div>
+  <div id="app-overlays"></div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+
+</html>

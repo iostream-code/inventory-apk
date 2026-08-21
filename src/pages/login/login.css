@@ -1,0 +1,152 @@
+/* Ported verbatim (hanya class F7 spesifik yang dibuang) dari
+   inventory-apk/www/pages/login.html <style> inline. */
+
+.login-screen-content {
+  min-height: 100vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow', sans-serif;
+  position: relative;
+  overflow: hidden;
+
+  /* Blob warna diambil dari palet ekspedisi-apk (brand hijau + slate netral,
+     BUKAN blue-100/orange-200 versi lama) -- lihat tailwind.config.js
+     brand.100/50 & catatan unifikasi warna di README/percakapan 2026-08-21. */
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(220,252,231,0.7) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 80%, rgba(203,213,225,0.4) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(241,245,249,0.6) 0%, transparent 70%),
+    linear-gradient(165deg, #f8fafc 0%, #f1f5f9 40%, #e2e8f0 70%, #f1f5f9 100%);
+}
+
+.lsc-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 52px 52px;
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 25%, transparent 65%);
+  mask-image: linear-gradient(to bottom, black 0%, black 25%, transparent 65%);
+}
+
+.lsc-orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
+/* orb-1 dulu biru (rgba(59,130,246,...)) -- ekspedisi-apk TIDAK PERNAH pakai
+   biru di palet manapun, glow di belakang logo pada login page-nya juga
+   brand-400 (lihat src/js/pages/login.js: "bg-brand-400 opacity-20
+   blur-3xl"). Disamakan ke situ. */
+.lsc-orb-1 { width: 320px; height: 320px; top: -80px; left: -80px; opacity: .85;
+  background: radial-gradient(circle, rgba(74,222,128,0.10) 0%, transparent 65%); }
+.lsc-orb-2 { width: 260px; height: 260px; bottom: -60px; right: -60px; opacity: .85;
+  background: radial-gradient(circle, rgba(22,163,74,0.08) 0%, transparent 65%); }
+.lsc-orb-3 { width: 200px; height: 200px; top: 45%; left: 50%; transform: translate(-50%,-50%);
+  background: radial-gradient(circle, rgba(22,163,74,0.04) 0%, transparent 65%); }
+
+.lsc-body {
+  width: 100%; max-width: 400px; padding: 0 22px 40px;
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  animation: lscUp 0.55s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes lscUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+
+.lsc-hero { display: flex; flex-direction: column; align-items: center; margin-bottom: 36px;
+  animation: lscUp 0.55s 0.06s cubic-bezier(0.16,1,0.3,1) both; }
+.lsc-icon-wrap { width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; position: relative; overflow: hidden; }
+.lsc-icon-wrap img { width: 100%; height: 100%; object-fit: contain; position: relative; z-index: 1; }
+.lsc-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.2px; margin: 0 0 4px; }
+.lsc-subtitle { font-size: 12px; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.2px;
+  text-align: center; line-height: 1.5; }
+
+.lsc-card {
+  width: 100%; background: rgba(255, 255, 255, 0.95);
+  /* border slate-200, sama seperti border-slate-200 dipakai ekspedisi-apk di form/input */
+  border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;
+  /* shadow di-tint warna ink (bukan black polos) -- pola sama persis dgn
+     shadow-card ekspedisi-apk (boxShadow.card di tailwind.config.js sana). */
+  box-shadow: 0 1px 3px rgba(11,18,32,.06), 0 12px 48px rgba(11,18,32,.08);
+  animation: lscUp 0.55s 0.12s cubic-bezier(0.16,1,0.3,1) both;
+  position: relative;
+}
+.lsc-card-strip {
+  height: 3px; position: relative; overflow: hidden;
+  /* brand-600 -> brand-400 -> transparan, skala hijau ekspedisi-apk persis */
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 55%, rgba(74,222,128,0) 100%);
+}
+.lsc-card-strip::after {
+  content: ''; position: absolute; top: 0; left: -60%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: lscShimmer 10s 0.5s ease-out infinite;
+}
+@keyframes lscShimmer {
+  0% { left: -60%; opacity: 1; } 12% { left: 110%; opacity: 1; }
+  13% { left: 110%; opacity: 0; } 99% { left: -60%; opacity: 0; } 100% { left: -60%; opacity: 1; }
+}
+
+.lsc-card-inner { padding: 22px 20px 24px; }
+.lsc-field { margin-bottom: 14px; }
+.lsc-field:last-child { margin-bottom: 0; }
+.lsc-field-label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+/* Ikon label netral (slate), BUKAN hijau -- ekspedisi-apk juga begitu
+   (text-slate-400 di ikon field login-nya): hijau dipakai murni sbg warna
+   aksi (tombol/fokus), bukan dekorasi di mana-mana. */
+.lsc-field-label svg { width: 13px; height: 13px; color: var(--text-muted); opacity: 0.8; }
+.lsc-field-label span {
+  font-family: 'Exo 2', sans-serif; font-size: 11px; font-weight: 600;
+  color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase;
+}
+.lsc-field input {
+  width: 100%; height: 48px; background: #f1f5f9; border: 1px solid #e2e8f0;
+  border-radius: 10px; padding: 0 15px; font-family: 'Barlow', sans-serif;
+  font-size: 14px; font-weight: 400; color: var(--text-primary);
+  outline: none; box-shadow: none; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  appearance: none; display: block;
+}
+.lsc-field input::placeholder { color: var(--text-muted); font-weight: 300; }
+/* focus:border-brand-600 + focus:ring-brand-100, persis pola ekspedisi-apk
+   (src/js/pages/login.js) -- solid, bukan hijau transparan/alpha. */
+.lsc-field input:focus {
+  background: #fff; border-color: #16A34A; box-shadow: 0 0 0 3px #DCFCE7;
+}
+.lsc-input-wrap { position: relative; }
+.lsc-input-wrap input { padding-right: 44px; }
+.lsc-eye-btn {
+  position: absolute; inset: 0 4px 0 auto; margin: auto 0; height: 32px; width: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text-muted); transition: color 0.15s;
+}
+.lsc-eye-btn svg { width: 18px; height: 18px; }
+.lsc-eye-btn:hover { color: var(--text-secondary); }
+
+.lsc-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 14px 0; }
+
+.lsc-btn-wrap { width: 100%; margin-top: 16px; animation: lscUp 0.55s 0.18s cubic-bezier(0.16,1,0.3,1) both; }
+.lsc-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  /* bg-brand-600 solid seperti .btn-brand ekspedisi-apk (bukan shade -light/400) */
+  width: 100%; height: 52px; background: var(--color-primary); border-radius: 12px;
+  font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 700;
+  color: #fff; letter-spacing: 1px; text-transform: uppercase; text-decoration: none;
+  cursor: pointer; border: none; transition: background 0.15s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(22,163,74,0.3), 0 1px 0 rgba(255,255,255,0.12) inset;
+  position: relative; overflow: hidden;
+}
+.lsc-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%);
+  pointer-events: none;
+}
+.lsc-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.lsc-btn:hover {
+  background: #22c55e; box-shadow: 0 6px 28px rgba(22,163,74,0.35), 0 1px 0 rgba(255,255,255,0.12) inset;
+  transform: translateY(-1px);
+}
+.lsc-btn:active { transform: scale(0.97); background: #15803d; box-shadow: 0 2px 8px rgba(22,163,74,0.2); }
+
+.lsc-footer { margin-top: 20px; text-align: center; animation: lscUp 0.55s 0.22s cubic-bezier(0.16,1,0.3,1) both; }
+.lsc-footer p { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin: 0; }

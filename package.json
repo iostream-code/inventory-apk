@@ -1,0 +1,41 @@
+{
+  "name": "inventory-apk",
+  "version": "1.0.0",
+  "description": "Aplikasi Inventory -- manajemen stok gudang Koperindo (Material, Opname, Stock In/Out, Partner, Logo), berbasis Cordova + jQuery + Tailwind + Vite",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "cordova:prepare": "npm run build && node fix-platform-type.cjs && cordova prepare",
+    "cordova:android": "npm run build && node fix-platform-type.cjs && cordova run android",
+    "cordova:ios": "npm run build && node fix-platform-type.cjs && cordova run ios",
+    "fix:platforms": "node fix-platform-type.cjs",
+    "version:patch": "node bump-version.cjs patch",
+    "version:minor": "node bump-version.cjs minor",
+    "version:major": "node bump-version.cjs major",
+    "version:custom": "node bump-version.cjs"
+  },
+  "dependencies": {
+    "jquery": "^3.7.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "cordova-android": "^15.1.0",
+    "cordova-browser": "^7.0.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10",
+    "cordova-plugin-whitelist": "^1.3.5",
+    "cordova-plugin-device": "^2.1.0",
+    "cordova-plugin-statusbar": "^3.0.0",
+    "cordova-plugin-splashscreen": "^6.0.2"
+  },
+  "cordova": {
+    "plugins": {
+      "cordova-plugin-whitelist": {},
+      "cordova-plugin-device": {},
+      "cordova-plugin-statusbar": {},
+      "cordova-plugin-splashscreen": {}
+    }
+  }
+}

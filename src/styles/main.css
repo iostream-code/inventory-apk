@@ -1,0 +1,277 @@
+/* @import wajib di baris paling atas file CSS (sebelum @tailwind sekalipun). */
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Barlow:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   DESIGN TOKENS
+   Disalin dari inventory-app/src/styles/main.css, --color-primary/-light diganti
+   hijau (2026-08-21, sebelumnya orange) supaya sama dengan tema brand
+   ekspedisi-apk (lihat tailwind.config.js di sini & di sana, brand.600/700).
+============================================================================= */
+
+:root {
+  --color-primary: #16a34a;
+  --color-primary-light: #4ade80;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+
+  /* bg-base, text-*, dan border-* diambil dari palet ekspedisi-apk (2026-08-21):
+     --bg-base = nilai persis warna `paper` ekspedisi (background body-nya),
+     text-* dan border-* pindah dari skala Tailwind gray ke slate (skala netral
+     yang dipakai ekspedisi-apk di semua tempat -- text-slate-600/400,
+     border-slate-200, dst), --text-primary ke nilai persis `ink.DEFAULT`
+     ekspedisi. Tujuannya supaya kedua app terasa satu keluarga warna, bukan
+     kebetulan mirip. */
+  --bg-base: #f5f7fa;
+  --bg-surface: #ffffff;
+  --bg-raised: #f8fafc;
+  --bg-overlay: #e2e8f0;
+
+  --text-primary: #0b1220;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-faint: #cbd5e1;
+
+  --border-default: #e2e8f0;
+  --border-subtle: #cbd5e1;
+
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+/* Menu tab (STOCK/PARTNER/LOGO + sub-tab Home/Stock In/dst): matikan outline
+   focus bawaan browser & efek "tap highlight" biru di mobile, supaya satu-
+   satunya warna biru yang muncul adalah state aktif yang kita atur sendiri
+   lewat JS (bg-info), bukan style bawaan browser saat/​setelah ditekan. */
+.hnt-tab-primary,
+.hnt-tab-secondary {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.hnt-tab-primary:focus,
+.hnt-tab-primary:focus-visible,
+.hnt-tab-secondary:focus,
+.hnt-tab-secondary:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* =============================================================================
+   ANIMASI POPUP / DIALOG
+   Dipakai oleh popup.js & dialog.js — backdrop fade + panel scale/slide-up,
+   supaya buka/tutup terasa halus (bukan langsung muncul/hilang).
+============================================================================= */
+.app-overlay-backdrop {
+  @apply opacity-0 transition-opacity duration-200 ease-out;
+}
+
+.app-overlay-backdrop.is-open {
+  @apply opacity-100;
+}
+
+.app-overlay-panel {
+  @apply opacity-0 scale-95 translate-y-3 transition-all duration-200 ease-out;
+}
+
+.app-overlay-backdrop.is-open .app-overlay-panel {
+  @apply opacity-100 scale-100 translate-y-0;
+}
+
+
+body {
+  margin: 0;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* =============================================================================
+   KOMPONEN — dipertahankan dari app.css lama (bukan hasil migrasi otomatis F7),
+   supaya kartu/tabel/badge yang dipakai di banyak halaman terlihat sama persis.
+============================================================================= */
+@layer components {
+  .card-surface {
+    @apply bg-surface rounded-md border border-ink-faint shadow-sm;
+  }
+
+  .section-title {
+    @apply text-sm font-bold text-ink-primary;
+  }
+
+  .section-count {
+    @apply text-xs font-semibold text-ink-secondary;
+  }
+
+  .btn-action {
+    @apply w-full py-3 rounded-md font-bold text-sm tracking-wide text-white cursor-pointer text-center transition;
+  }
+
+  .btn-action--primary {
+    @apply bg-primary hover:brightness-95;
+  }
+
+  .btn-action--success {
+    @apply bg-success hover:brightness-95;
+  }
+
+  .btn-action--danger {
+    @apply bg-danger hover:brightness-95;
+  }
+
+  .search-input-wrap {
+    @apply relative;
+  }
+
+  .search-input {
+    @apply w-full h-10 pl-9 pr-3 rounded-md border border-ink-faint bg-surface-raised text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10;
+  }
+
+  .search-icon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm;
+  }
+
+  .tbl-wrap {
+    /* overflow-y di sini yang bikin "hanya body yang scroll" — thead di-sticky
+       (lihat .tbl-dark thead th) supaya tetap kelihatan selagi body di-scroll.
+       Berlaku otomatis untuk SEMUA tabel karena semua tabel di app ini pakai
+       kombinasi kelas .tbl-wrap + .tbl-dark yang sama. */
+    @apply w-full overflow-auto;
+    max-height: 65vh;
+  }
+
+  .tbl-dark {
+    @apply w-full border-collapse text-xs;
+  }
+
+  .tbl-dark thead th {
+    @apply sticky top-0 z-10 bg-surface-raised text-ink-secondary font-bold uppercase tracking-wide text-[11px] py-2 px-2 border-b border-ink-faint;
+  }
+
+  .tbl-dark tbody td {
+    @apply py-2 px-2 border-b border-surface-overlay text-ink-primary;
+  }
+
+  .tbl-bordered td,
+  .tbl-bordered th {
+    @apply border-r border-surface-overlay;
+  }
+
+  .tbl-bordered td:last-child,
+  .tbl-bordered th:last-child {
+    border-right: none;
+  }
+
+  .td-center {
+    text-align: center;
+  }
+
+  .td-left {
+    text-align: left;
+  }
+
+  .tbl-empty {
+    @apply text-center py-8 text-ink-muted text-sm;
+  }
+
+  .fs-11 {
+    font-size: 11px;
+  }
+
+  .fs-12 {
+    font-size: 12px;
+  }
+
+  .fs-13 {
+    font-size: 13px;
+  }
+
+  .fs-16 {
+    font-size: 16px;
+  }
+
+  .fs-18 {
+    font-size: 18px;
+  }
+
+  .fs-26 {
+    font-size: 26px;
+  }
+
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .text-danger {
+    color: var(--color-danger);
+  }
+
+  .text-primary-brand {
+    color: var(--color-primary);
+  }
+
+  /* Form Material (dan form-form lain berikutnya) */
+  .mat-label {
+    @apply block text-[11px] font-bold text-ink-secondary tracking-wide uppercase mb-1.5;
+  }
+
+  .mat-input {
+    @apply w-full h-11 px-3 rounded-md border border-ink-faint bg-surface-raised text-sm text-ink-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/10;
+  }
+
+  .mat-import-dropzone {
+    @apply flex flex-col items-center justify-center gap-1 py-6 rounded-md border-2 border-dashed border-ink-faint bg-surface-raised cursor-pointer hover:border-primary transition-colors;
+  }
+
+  .mat-badge {
+    @apply inline-block px-2 py-0.5 rounded text-[11px] font-bold;
+  }
+
+  .mat-status-ok {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .mat-status-low {
+    @apply bg-orange-100 text-orange-700;
+  }
+
+  .mat-status-empty {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .mat-status-overstock {
+    @apply bg-blue-100 text-blue-700;
+  }
+
+  .btn-tbl--detail {
+    @apply text-primary font-bold text-xs mr-2;
+  }
+
+  .btn-tbl--delete {
+    @apply text-danger font-bold text-xs;
+  }
+
+  .btn-tbl--receive {
+    @apply text-success font-bold text-xs;
+  }
+
+  .summary-card {
+    @apply text-center rounded-md py-2 px-1 bg-surface-raised border border-ink-faint;
+  }
+}
