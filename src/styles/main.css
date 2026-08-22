@@ -6,6 +6,47 @@
 @tailwind utilities;
 
 /* =============================================================================
+   TOPBAR -- indikator koneksi (#box_internet)
+   Disalin apa adanya dari ekspedisi-apk/src/css/style.css (2026-08-22, isian
+   topbar diseragamkan dgn ekspedisi-apk) -- dipakai lewat class, diganti-ganti
+   oleh version-check.js (dulu inline style.backgroundColor polos).
+============================================================================= */
+.connection-indicator {
+  flex-shrink: 0;
+  margin-right: 10px;
+  width: 12px;
+  height: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.connection-indicator.connected {
+  background-color: #00ff00;
+  box-shadow: 0 0 8px #00ff00, 0 0 16px #00ff00;
+  animation: pulse-green 2s ease-in-out infinite;
+  border: none;
+}
+
+.connection-indicator.disconnected {
+  background-color: #ff0000;
+  box-shadow: 0 0 8px #ff0000, 0 0 16px #ff0000;
+  animation: pulse-red 1s ease-in-out infinite;
+  border: none;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px #00ff00, 0 0 16px #00ff00; }
+  50% { opacity: 0.6; box-shadow: 0 0 4px #00ff00, 0 0 8px #00ff00; }
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px #ff0000, 0 0 16px #ff0000; }
+  50% { opacity: 0.4; box-shadow: 0 0 4px #ff0000, 0 0 8px #ff0000; }
+}
+
+/* =============================================================================
    DESIGN TOKENS
    Disalin dari inventory-app/src/styles/main.css, --color-primary/-light diganti
    hijau (2026-08-21, sebelumnya orange) supaya sama dengan tema brand
@@ -109,6 +150,24 @@ body {
 @layer components {
   .card-surface {
     @apply bg-surface rounded-md border border-ink-faint shadow-sm;
+  }
+
+  /* Tombol ikon utility (Refresh, Master, Sesi Baru, dst di header section
+     menu Stock) -- dulu ikon polos tanpa batas/background (cuma diwarnai
+     text-success/text-cyan-600/dst), tidak kelihatan seperti button
+     sungguhan. Base SELALU abu-abu netral (bukan warna per-ikon) supaya
+     konsisten & warna dipakai hemat, sama pola dgn opn_btn_scan_camera yang
+     dari awal sudah begini (border + text-ink-secondary). */
+  .icon-btn {
+    @apply w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md
+           bg-surface-raised border border-ink-faint text-ink-secondary
+           transition-colors;
+  }
+  .icon-btn:hover {
+    @apply bg-surface-overlay text-ink-primary;
+  }
+  .icon-btn:active {
+    @apply bg-ink-faint;
   }
 
   .section-title {
@@ -259,16 +318,33 @@ body {
     @apply bg-blue-100 text-blue-700;
   }
 
+  /* Tombol aksi kolom OPSI/tabel (Data, Master Barang/Material, Stock In,
+     Stock Out, Opname) -- dulu tulisan berwarna polos TANPA background sama
+     sekali (tidak kelihatan seperti button sungguhan). Sekarang SEMUA py
+     background abu-abu (bg-surface-overlay) sbg dasarnya -- warna teks per
+     aksi (primary/danger/success) DIPERTAHANKAN di atas dasar abu itu utk
+     tetap bisa dibedakan sekilas (Hapus vs Detail vs Receive), bukan
+     diseragamkan total spt .btn-table-action ekspedisi-apk (beda konteks:
+     di sana 1 aksi/baris, di sini bisa 2 aksi bersebelahan dlm 1 sel spt
+     Edit+Hapus di Master Barang, jadi label & warna sama-sama masih perlu
+     bantu bedakan dgn cepat).
+     .btn-tbl--out (dipakai stock-out.js "Keluar") SEBELUMNYA tidak py
+     definisi CSS sama sekali (bug -- tampil sbg link biru default browser,
+     bukan cuma "kurang gaya"), ditambahkan sekalian. */
   .btn-tbl--detail {
-    @apply text-primary font-bold text-xs mr-2;
+    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-primary font-bold text-[11px] mr-1.5 whitespace-nowrap hover:bg-ink-faint transition-colors;
   }
 
   .btn-tbl--delete {
-    @apply text-danger font-bold text-xs;
+    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-danger font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
   }
 
   .btn-tbl--receive {
-    @apply text-success font-bold text-xs;
+    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-success font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
+  }
+
+  .btn-tbl--out {
+    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-primary font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
   }
 
   .summary-card {

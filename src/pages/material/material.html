@@ -111,17 +111,8 @@
                     <span id="mat_total_count" class="section-count">0</span>
                 </div>
 
-                <select id="mat_filter_status"
-                    class="text-sm font-semibold border border-ink-faint rounded-md py-1.5 px-2.5 bg-surface-base">
-                    <option value="all">Semua</option>
-                    <option value="ok">Aman</option>
-                    <option value="low">Menipis</option>
-                    <option value="empty">Habis</option>
-                    <option value="overstock">Overstock</option>
-                </select>
-
-                <button id="btn-mat-refresh" title="Refresh" class="text-success flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                <button id="btn-mat-refresh" title="Refresh" class="icon-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <path d="M21 2v6h-6" />
                         <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
@@ -129,8 +120,8 @@
                         <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
                     </svg>
                 </button>
-                <button id="btn-mat-barcode" title="Cetak Barcode (segera hadir)" class="text-info flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                <button id="btn-mat-barcode" title="Cetak Barcode (segera hadir)" class="icon-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <rect x="3" y="5" width="2" height="14" />
                         <rect x="7" y="5" width="1" height="14" />
@@ -140,8 +131,8 @@
                         <rect x="20" y="5" width="1" height="14" />
                     </svg>
                 </button>
-                <button id="btn-mat-add" title="Tambah Material" class="text-emerald-600 flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" viewBox="0 0 24 24" fill="none"
+                <button id="btn-mat-add" title="Tambah Material" class="icon-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 8v8M8 12h8" />
@@ -149,13 +140,23 @@
                 </button>
             </div>
 
-            <div class="search-input-wrap">
-                <input id="mat_search" type="text" placeholder="Cari material..." class="search-input">
-                <svg class="search-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                </svg>
+            <div class="flex items-center gap-2">
+                <div class="search-input-wrap flex-1">
+                    <input id="mat_search" type="text" placeholder="Cari material..." class="search-input">
+                    <svg class="search-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                    </svg>
+                </div>
+                <select id="mat_filter_status"
+                    class="text-sm font-semibold border border-ink-faint rounded-md py-2 px-2.5 bg-surface-base flex-shrink-0">
+                    <option value="all">Semua</option>
+                    <option value="ok">Aman</option>
+                    <option value="low">Menipis</option>
+                    <option value="empty">Habis</option>
+                    <option value="overstock">Overstock</option>
+                </select>
             </div>
         </div>
     </div>

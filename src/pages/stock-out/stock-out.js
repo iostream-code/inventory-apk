@@ -1,5 +1,6 @@
 import tpl from './stock-out.html?raw';
-import { BASE_API_INVENTORY, numberFormat, formatDateShort as formatTglShort } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat, formatDateShort as formatTglShort } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -93,7 +94,7 @@ export function mount(container) {
         if (state.searchQuery) payload.search = state.searchQuery;
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-out/get-stockout-active', dataType: 'JSON', data: payload,
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-out/get-stockout-active', dataType: 'JSON', data: payload,
             success(res) {
                 state.isLoading = false;
                 if (res.status === 1) { state.reqList = res.data.req_list || []; renderTable(); }
@@ -136,7 +137,7 @@ export function mount(container) {
         app.popup.open('#popup-stockout-out');
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-out/get-stockout-req-items', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-out/get-stockout-req-items', dataType: 'JSON',
             data: { req_id: reqId, warehouse_id: warehouseId() },
             success(res) {
                 if (res.status === 1) {
@@ -223,7 +224,7 @@ export function mount(container) {
             fd.append('photo', out.photoFile);
 
             jQuery.ajax({
-                type: 'POST', url: BASE_API_INVENTORY + '/stock-out/submit-stockout', dataType: 'JSON',
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-out/submit-stockout', dataType: 'JSON',
                 data: fd, processData: false, contentType: false,
                 success(res) {
                     jQuery('#so_out_btn_submit').css('opacity', '1').prop('disabled', false);
@@ -247,7 +248,7 @@ export function mount(container) {
         app.popup.open('#popup-stockout-detail');
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-out/get-stockout-req-detail', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-out/get-stockout-req-detail', dataType: 'JSON',
             data: { req_id: reqId, warehouse_id: warehouseId() },
             success(res) {
                 if (res.status === 1) {

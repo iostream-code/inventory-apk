@@ -1,5 +1,6 @@
 import tpl from './logo.html?raw';
-import { BASE_API, numberFormat, formatDateShort } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat, formatDateShort } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -54,7 +55,7 @@ export function mount(container) {
         jQuery('#logo_value').html('');
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API + '/get-data-purchase', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/get-data-purchase', dataType: 'JSON',
             data: {
                 karyawan_id: localStorage.getItem('user_id'),
                 perusahaan_purchase_value: 'empty', type_purchase_filter: 'empty',
@@ -205,7 +206,7 @@ export function mount(container) {
         app.dialog.preloader('Mengunggah foto...');
         jQuery.ajax({
             type: 'POST',
-            url: BASE_API + (isStiker ? '/update-file-foto-purchasing' : '/update-file-resin-purchasing'),
+            url: APP_CONFIG.API_BASE_URL + (isStiker ? '/update-file-foto-purchasing' : '/update-file-resin-purchasing'),
             dataType: 'JSON', data: fd, contentType: false, processData: false,
             success(data) {
                 app.dialog.close();

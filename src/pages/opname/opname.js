@@ -1,5 +1,6 @@
 import tpl from './opname.html?raw';
-import { BASE_API_INVENTORY, numberFormat, formatDateShort as formatTglShort } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat, formatDateShort as formatTglShort } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -119,7 +120,7 @@ export function mount(container) {
         if (state.searchQuery) payload.search = state.searchQuery;
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/get-sessions', dataType: 'JSON', data: payload,
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/get-sessions', dataType: 'JSON', data: payload,
             success(res) {
                 state.isLoading = false;
                 if (res.status === 1) {
@@ -221,7 +222,7 @@ export function mount(container) {
         if (!date) { app.dialog.alert('Tanggal wajib diisi'); return; }
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/create-session', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/create-session', dataType: 'JSON',
             data: { warehouse_id: warehouseId(), opname_date: date, notes, user_id: userId(), user_position: jabatan() },
             success(res) {
                 if (res.status === 1) {
@@ -249,7 +250,7 @@ export function mount(container) {
         if (!query) { app.dialog.alert('Masukkan kode / nama material'); return; }
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/lookup-material', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/lookup-material', dataType: 'JSON',
             data: { query, warehouse_id: warehouseId(), user_position: jabatan() },
             success(res) {
                 if (res.status === 1 && res.data.material) {
@@ -280,7 +281,7 @@ export function mount(container) {
         if (isNaN(qty) || qty < 0) { app.dialog.alert('Isi stok fisik dengan benar'); return; }
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/save-scan', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/save-scan', dataType: 'JSON',
             data: { session_id: state.activeSession.id, material_id: matId, qty_actual: qty, warehouse_id: warehouseId(), user_id: userId() },
             success(res) {
                 if (res.status === 1) {
@@ -307,7 +308,7 @@ export function mount(container) {
         if (!items.length) {
             app.dialog.confirm('Tidak ada material yang di-scan. Batalkan sesi ini?', 'Batalkan Sesi', () => {
                 jQuery.ajax({
-                    type: 'POST', url: BASE_API_INVENTORY + '/opname/delete-session', dataType: 'JSON',
+                    type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/delete-session', dataType: 'JSON',
                     data: { session_id: state.activeSession.id, warehouse_id: warehouseId() },
                     success(res) {
                         if (res.status === 1) {
@@ -368,7 +369,7 @@ export function mount(container) {
         const msg = admin ? 'Simpan dan langsung update stok di sistem? (Tidak perlu approval)' : 'Tutup sesi dan kirim ke Admin Gudang untuk approval?';
         app.dialog.confirm(msg, admin ? 'Konfirmasi Update Stok' : 'Konfirmasi', () => {
             jQuery.ajax({
-                type: 'POST', url: BASE_API_INVENTORY + '/opname/submit-session', dataType: 'JSON',
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/submit-session', dataType: 'JSON',
                 data: { session_id: state.activeSession.id, warehouse_id: warehouseId(), user_id: userId(), user_position: jabatan() },
                 success(res) {
                     if (res.status === 1) {
@@ -424,7 +425,7 @@ export function mount(container) {
     function openApprove(sessionId) {
         app.dialog.preloader('Memuat data...');
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/get-session-detail', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/get-session-detail', dataType: 'JSON',
             data: { session_id: sessionId, warehouse_id: warehouseId() },
             success(res) {
                 app.dialog.close();
@@ -443,7 +444,7 @@ export function mount(container) {
     function openDetail(sessionId) {
         app.dialog.preloader('Memuat data...');
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/opname/get-session-detail', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/get-session-detail', dataType: 'JSON',
             data: { session_id: sessionId, warehouse_id: warehouseId() },
             success(res) {
                 app.dialog.close();
@@ -460,7 +461,7 @@ export function mount(container) {
         const sessionId = jQuery('#opn_approve_items').data('session-id');
         app.dialog.confirm('Approve opname ini? Stok akan diupdate sesuai hasil fisik.', 'Konfirmasi', () => {
             jQuery.ajax({
-                type: 'POST', url: BASE_API_INVENTORY + '/opname/approve-session', dataType: 'JSON',
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/opname/approve-session', dataType: 'JSON',
                 data: { session_id: sessionId, warehouse_id: warehouseId(), user_id: userId(), user_position: jabatan() },
                 success(res) {
                     if (res.status === 1) {

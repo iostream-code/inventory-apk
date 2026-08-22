@@ -1,5 +1,6 @@
 import tpl from './home.html?raw';
-import { BASE_API_INVENTORY, numberFormat } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 import { Router } from '../../lib/router.js';
 
@@ -34,11 +35,6 @@ export function mount(container) {
   // ── Events ──────────────────────────────────────────────
   jQuery('#btn-refresh-home').on('click', resetData);
   jQuery('#link-material-master').on('click', (e) => { e.preventDefault(); Router.navigate('/material'); });
-  jQuery('#link-purchase-request').on('click', (e) => {
-    e.preventDefault();
-    // TODO(iterasi berikutnya): halaman daftar Purchase Request (openListPurchaseRequest di home.js lama).
-    app.dialog.alert('Daftar Request PO menyusul di iterasi migrasi berikutnya.');
-  });
   jQuery('#home_search').on('input', () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
@@ -58,8 +54,10 @@ export function mount(container) {
     updateFloatingBar();
   });
   jQuery('#btn-po-request').on('click', () => {
-    // TODO(iterasi berikutnya): popup Request PO (openRequestPOModal di home.js lama).
-    app.dialog.alert('Fitur Request PO menyusul di iterasi migrasi berikutnya.');
+    // Request PO sekarang py tab tersendiri (menu "PO", lihat shell.js) --
+    // TODO(iterasi berikutnya): bawa state.selectedPO ke sana (popup
+    // Request PO, openRequestPOModal di home.js lama), bukan cuma navigate polos.
+    Router.navigate('/po');
   });
 
   // Delegasi untuk tombol DETAIL di setiap baris (dibuat lewat innerHTML)
@@ -82,7 +80,7 @@ export function mount(container) {
 
     jQuery.ajax({
       type: 'POST',
-      url: BASE_API_INVENTORY + '/home-dashboard/get-dashboard',
+      url: APP_CONFIG.API_BASE_URL + '/inventory/home-dashboard/get-dashboard',
       dataType: 'JSON',
       data: {
         warehouse_id: state.warehouseId,
@@ -175,7 +173,7 @@ export function mount(container) {
           <td class="td-right" style="color:${m.total_po > 0 ? 'var(--color-info)' : '#bbb'};font-weight:700;">${numberFormat(m.total_po || 0, 0, ',', '.')}</td>
           ${butuhPoCell}
           <td class="td-center">
-            <a href="#" class="btn-detail text-primary font-bold text-xs" data-id="${m.id}">DETAIL</a>
+            <a href="#" class="btn-detail btn-tbl--detail" data-id="${m.id}">DETAIL</a>
           </td>
         </tr>
       `;
@@ -226,7 +224,7 @@ export function mount(container) {
 
     jQuery.ajax({
       type: 'POST',
-      url: BASE_API_INVENTORY + '/home-dashboard/get-material-detail',
+      url: APP_CONFIG.API_BASE_URL + '/inventory/home-dashboard/get-material-detail',
       dataType: 'JSON',
       data: {
         material_id: materialId,

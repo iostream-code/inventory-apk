@@ -1,5 +1,6 @@
 import tpl from './material.html?raw';
-import { BASE_API_INVENTORY, BASE_GAMBAR, numberFormat } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -16,7 +17,11 @@ const STATUS_CFG = {
 
 export function mount(container) {
     container.innerHTML = tpl;
-    showAuthedShell(null); // halaman ini diakses dari Home (bukan salah satu tab utama)
+    // Diakses dari Data/Home (bukan tab utama sendiri) -- tetap kirim path asli
+    // (bukan null) supaya tab STOCK & baris sub-tabnya tetap kelihatan aktif,
+    // lihat STOCK_PATHS di shell.js (material sengaja masuk grup Stock walau
+    // tidak py tombol sub-tab sendiri).
+    showAuthedShell('/material');
 
     const state = {
         data: [],
@@ -79,7 +84,7 @@ export function mount(container) {
     // ── Dropdown master (unit & kategori) ───────────────────
     function fetchUnits() {
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/material/get-units', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/material/get-units', dataType: 'JSON',
             data: { warehouse_id: warehouseId() },
             success(res) {
                 if (res.status === 1) {
@@ -94,7 +99,7 @@ export function mount(container) {
 
     function fetchCategories() {
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/material/get-categories', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/material/get-categories', dataType: 'JSON',
             data: { warehouse_id: warehouseId() },
             success(res) {
                 if (res.status === 1) {
@@ -119,7 +124,7 @@ export function mount(container) {
         if (state.filterStatus !== 'all') payload.status_filter = state.filterStatus;
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/material/get-materials', dataType: 'JSON', data: payload,
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/material/get-materials', dataType: 'JSON', data: payload,
             success(res) {
                 state.isLoading = false;
                 if (res.status === 1) {
@@ -150,17 +155,17 @@ export function mount(container) {
             const cfg = STATUS_CFG[m.stock_status] || { label: '-', cls: '' };
             const stokColor = m.current_stock <= 0 ? 'var(--color-danger)' : (m.stock_status === 'low' ? 'var(--color-primary-light)' : 'var(--text-primary)');
             const minMaxCell = m.is_stockable === false
-                ? `<td class="td-center" colspan="1" style="font-weight:700;font-size:11px;background:#fffbeb;color:#d97706;">PO SPK</td>`
-                : `<td class="td-right" style="font-weight:600;">${numberFormat(m.min_stock, 0, ',', '.')}</td>`;
+                ? `<td class="td-center whitespace-nowrap" colspan="1" style="font-weight:700;font-size:11px;background:#fffbeb;color:#d97706;">PO SPK</td>`
+                : `<td class="td-right whitespace-nowrap" style="font-weight:600;">${numberFormat(m.min_stock, 0, ',', '.')}</td>`;
 
             return `
         <tr class="${i % 2 !== 0 ? 'bg-surface-raised/50' : ''}">
-          <td class="td-center font-semibold">${i + 1}</td>
-          <td class="td-left">${escHtml(m.code || '-')}</td>
-          <td class="td-left font-semibold">${escHtml(m.name)} <span class="text-[10px] text-ink-muted font-semibold">| ${escHtml(m.unit_code || m.unit_abbr || '-')}</span></td>
+          <td class="td-center font-semibold whitespace-nowrap">${i + 1}</td>
+          <td class="td-left whitespace-nowrap">${escHtml(m.code || '-')}</td>
+          <td class="td-left font-semibold whitespace-nowrap">${escHtml(m.name)} <span class="text-[10px] text-ink-muted font-semibold">| ${escHtml(m.unit_code || m.unit_abbr || '-')}</span></td>
           ${minMaxCell}
-          <td class="td-right" style="font-weight:700;color:${stokColor};">${numberFormat(m.current_stock, 0, ',', '.')}</td>
-          <td class="td-center"><span class="mat-badge ${cfg.cls}">${cfg.label}</span></td>
+          <td class="td-right whitespace-nowrap" style="font-weight:700;color:${stokColor};">${numberFormat(m.current_stock, 0, ',', '.')}</td>
+          <td class="td-center whitespace-nowrap"><span class="mat-badge ${cfg.cls}">${cfg.label}</span></td>
           <td class="td-center whitespace-nowrap">
             <a href="#" class="btn-tbl--detail" data-id="${m.id}">Edit</a>
             <a href="#" class="btn-tbl--delete" data-id="${m.id}" data-name="${escHtml(m.name)}">Hapus</a>
@@ -216,7 +221,7 @@ export function mount(container) {
             jQuery('#mat_form_rack_location').val(editData.rack_location || '');
 
             if (editData.photo_url) {
-                jQuery('#mat_form_photo_preview').attr('src', BASE_GAMBAR + '/' + editData.photo_url);
+                jQuery('#mat_form_photo_preview').attr('src', APP_CONFIG.IMAGE_BASE_URL + '/' + editData.photo_url);
                 jQuery('#mat_form_photo_preview_wrap').removeClass('hidden');
                 jQuery('#mat_form_photo_zone').addClass('hidden');
             }
@@ -269,7 +274,7 @@ export function mount(container) {
             return;
         }
 
-        const url = BASE_API_INVENTORY + (id ? '/material/update-material' : '/material/store-material');
+        const url = APP_CONFIG.API_BASE_URL + '/inventory' + (id ? '/material/update-material' : '/material/store-material');
         const formData = new FormData();
         formData.append('warehouse_id', warehouseId());
         formData.append('user_id', userId());
@@ -307,7 +312,7 @@ export function mount(container) {
     function deleteMaterial(materialId, materialName) {
         app.dialog.confirm(`Hapus material "${materialName}"?`, 'Konfirmasi', () => {
             jQuery.ajax({
-                type: 'POST', url: BASE_API_INVENTORY + '/material/delete-material', dataType: 'JSON',
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/material/delete-material', dataType: 'JSON',
                 data: { material_id: materialId, warehouse_id: warehouseId(), user_id: userId() },
                 success(res) {
                     if (res.status === 1) {

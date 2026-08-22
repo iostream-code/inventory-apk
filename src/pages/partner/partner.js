@@ -1,5 +1,6 @@
 import tpl from './partner.html?raw';
-import { BASE_API, numberFormat, formatDateShort } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat, formatDateShort } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -144,7 +145,7 @@ export function mount(container) {
     function fetchPartnerData() {
         app.dialog.preloader('Memuat data...');
         jQuery.ajax({
-            url: BASE_API + '/partner', method: 'GET', contentType: 'application/json',
+            url: APP_CONFIG.API_BASE_URL + '/partner', method: 'GET', contentType: 'application/json',
             success(result) {
                 app.dialog.close();
                 const setahunLalu = new Date();
@@ -250,7 +251,7 @@ export function mount(container) {
         // id_partner_transaksi di body, dan hasilnya nested di data.material
         // (bukan data langsung). Lihat MaterialController@getMaterialByPartner.
         jQuery.ajax({
-            url: `${BASE_API}/partner/material`, method: 'POST', contentType: 'application/json',
+            url: `${APP_CONFIG.API_BASE_URL}/partner/material`, method: 'POST', contentType: 'application/json',
             data: JSON.stringify({ id_partner_transaksi: partnerId }),
             success(result) {
                 if (partnerId !== state.currentPartnerId) return;
@@ -388,7 +389,7 @@ export function mount(container) {
                 if (m.photoFile) fd.append('foto_bukti_material', m.photoFile, m.photoFile.name || 'foto.jpg');
 
                 return jQuery.ajax({
-                    url: BASE_API + '/partner/material/add-partner-material', method: 'POST',
+                    url: APP_CONFIG.API_BASE_URL + '/partner/material/add-partner-material', method: 'POST',
                     data: fd, processData: false, contentType: false,
                 });
             });
@@ -447,7 +448,7 @@ export function mount(container) {
 
     function loadReceivingData(partnerId) {
         jQuery.ajax({
-            url: `${BASE_API}/partner/delivery`, method: 'POST', contentType: 'application/json',
+            url: `${APP_CONFIG.API_BASE_URL}/partner/delivery`, method: 'POST', contentType: 'application/json',
             data: JSON.stringify({ id_partner_transaksi: partnerId }),
             success(res) {
                 if (partnerId !== RECEIVING_STATE.currentPartnerTransaksiId) return;
@@ -623,7 +624,7 @@ export function mount(container) {
 
         jQuery('#btn_submit_penerimaan').prop('disabled', true).text('Menyimpan...');
         jQuery.ajax({
-            url: `${BASE_API}/partner/delivery/add-delivery`, method: 'POST', data: fd, processData: false, contentType: false,
+            url: `${APP_CONFIG.API_BASE_URL}/partner/delivery/add-delivery`, method: 'POST', data: fd, processData: false, contentType: false,
             success(res) {
                 jQuery('#btn_submit_penerimaan').prop('disabled', false).text('SIMPAN');
                 if (res.success) {
@@ -709,7 +710,7 @@ export function mount(container) {
 
         jQuery('#btn_submit_retur').prop('disabled', true).text('Menyimpan...');
         jQuery.ajax({
-            url: `${BASE_API}/partner/retur/input-retur`, method: 'POST', data: fd, processData: false, contentType: false,
+            url: `${APP_CONFIG.API_BASE_URL}/partner/retur/input-retur`, method: 'POST', data: fd, processData: false, contentType: false,
             success(res) {
                 jQuery('#btn_submit_retur').prop('disabled', false).text('SIMPAN RETUR');
                 if (res.status) {
@@ -734,7 +735,7 @@ export function mount(container) {
         if (!item || !(parseInt(item.jumlah_retur) > 0)) { app.dialog.alert('Belum ada data retur untuk item ini'); return; }
 
         jQuery.ajax({
-            url: `${BASE_API}/partner/retur/get-retur-by-pengiriman/${idDetailPengiriman}`, method: 'GET',
+            url: `${APP_CONFIG.API_BASE_URL}/partner/retur/get-retur-by-pengiriman/${idDetailPengiriman}`, method: 'GET',
             beforeSend() { app.dialog.preloader('Memuat data retur...'); },
             success(res) {
                 app.dialog.close();
@@ -798,7 +799,7 @@ export function mount(container) {
 
         jQuery('#btn_submit_penerimaan_retur').prop('disabled', true).text('Menyimpan...');
         jQuery.ajax({
-            url: `${BASE_API}/partner/retur/input-penerimaan-retur`, method: 'POST', data: fd, processData: false, contentType: false,
+            url: `${APP_CONFIG.API_BASE_URL}/partner/retur/input-penerimaan-retur`, method: 'POST', data: fd, processData: false, contentType: false,
             success(res) {
                 jQuery('#btn_submit_penerimaan_retur').prop('disabled', false).text('SIMPAN');
                 if (res.status) {

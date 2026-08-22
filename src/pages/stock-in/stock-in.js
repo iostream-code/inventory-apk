@@ -1,5 +1,6 @@
 import tpl from './stock-in.html?raw';
-import { BASE_API_INVENTORY, numberFormat, formatDateShort as formatTglShort } from '../../lib/config.js';
+import { APP_CONFIG } from '../../lib/config.js';
+import { numberFormat, formatDateShort as formatTglShort } from '../../lib/format.js';
 import { showAuthedShell } from '../../lib/shell.js';
 
 function escHtml(str) {
@@ -96,7 +97,7 @@ export function mount(container) {
         if (state.searchQuery) payload.search = state.searchQuery;
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-in/get-stockin-active', dataType: 'JSON', data: payload,
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-in/get-stockin-active', dataType: 'JSON', data: payload,
             success(res) {
                 state.isLoading = false;
                 if (res.status === 1) { state.poList = res.data.po_list || []; renderTable(); }
@@ -141,7 +142,7 @@ export function mount(container) {
         app.popup.open('#popup-stockin-receive');
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-in/get-stockin-po-items', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-in/get-stockin-po-items', dataType: 'JSON',
             data: { po_id: poId, lokasi_pabrik: lokasiPabrik() },
             success(res) {
                 if (res.status === 1) {
@@ -220,7 +221,7 @@ export function mount(container) {
             fd.append('photo', receive.photoFile);
 
             jQuery.ajax({
-                type: 'POST', url: BASE_API_INVENTORY + '/stock-in/submit-stockin-receive', dataType: 'JSON',
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-in/submit-stockin-receive', dataType: 'JSON',
                 data: fd, processData: false, contentType: false,
                 success(res) {
                     jQuery('#si_rcv_btn_submit').css('opacity', '1').prop('disabled', false);
@@ -244,7 +245,7 @@ export function mount(container) {
         app.popup.open('#popup-stockin-detail');
 
         jQuery.ajax({
-            type: 'POST', url: BASE_API_INVENTORY + '/stock-in/get-stockin-po-detail', dataType: 'JSON',
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-in/get-stockin-po-detail', dataType: 'JSON',
             data: { po_id: poId, lokasi_pabrik: lokasiPabrik() },
             success(res) {
                 if (res.status === 1) {

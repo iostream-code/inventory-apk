@@ -43,6 +43,12 @@ export default {
         heading: ['"Exo 2"', 'sans-serif'],
         body: ['Barlow', 'sans-serif'],
       },
+      // shadow-card dipakai topbar (shell.js), disamakan dgn ekspedisi-apk
+      // (2026-08-22, lihat boxShadow.card di tailwind.config.js sana) --
+      // shadow di-tint warna ink (bukan black polos).
+      boxShadow: {
+        card: '0 1px 2px 0 rgba(11,18,32,0.06), 0 1px 3px 0 rgba(11,18,32,0.08)',
+      },
     },
   },
   plugins: [],
