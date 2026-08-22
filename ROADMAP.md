@@ -5,29 +5,25 @@ lama) ke [`backend-migrasi`](../backend-migrasi) (Slim 4, PDO polos) — mengiku
 terbukti jalan di modul Ekspedisi (`ekspedisi-apk` + `backend-migrasi/src/Ekspedisi/`). Update
 dokumen ini tiap ada progres — jangan simpan status hanya di memori percakapan.
 
-**Status saat ini (2026-08-22, susulan): cutover LOCAL sudah mulai jalan.** Catatan sebelumnya di
-sini bilang "app ini MASIH memanggil backend-production sepenuhnya" — itu sudah BASI:
-`src/lib/config.js` `APP_CONFIG.API_BASE_URL` LOCAL sekarang diarahkan ke `backend-migrasi`
-(Slim, satu proses jalan bareng modul Ekspedisi), dan endpoint modul Inventory (login/material/
-opname/home-dashboard/stock-in/stock-out, prefix `/inventory` inline per pemanggil — lihat
-"Selesai" di bawah untuk detail penyederhanaan config.js ini, dulu ada const terpisah
-`BASE_API_INVENTORY` yang sudah dihapus) SEKARANG HARUS ke `backend-migrasi` supaya jalan (butuh
-JWT Bearer, backend-production tidak). **Endpoint Partner/Logo (`partner.js`/`logo.js`) TIDAK
-ikut** — tetap ke `backend-production` sepenuhnya, modul terpisah, di luar migrasi Inventory.
-**Production build** (baris `API_BASE_URL` yang di-comment di `config.js`) **BELUM disesuaikan**
-ke kontrak `backend-migrasi` — masih nunjuk `backend-production`, jangan diaktifkan begitu saja
-tanpa update kontrak login-nya juga (lihat entri "Bug login tertukar dgn Ekspedisi" di bawah).
+**Status saat ini (2026-08-22, susulan #2): cutover LOCAL sudah SELESAI, semua modul.** Catatan
+sebelumnya di sini bilang "Endpoint Partner/Logo TIDAK ikut, tetap ke backend-production" — itu
+sudah BASI: `partner.js`/`logo.js` sekarang JUGA ke `backend-migrasi` (modul baru `src/Partner/`
+& `src/Purchasing/`, lihat "Selesai" di bawah). `src/lib/config.js` `APP_CONFIG.API_BASE_URL`
+LOCAL diarahkan ke `backend-migrasi` (Slim, satu proses jalan bareng Ekspedisi/Inventory/Partner/
+Purchasing), dan **SELURUH** endpoint app ini (login/material/opname/home-dashboard/stock-in/
+stock-out/partner/logo) sekarang HARUS ke `backend-migrasi` supaya jalan (butuh JWT Bearer,
+backend-production tidak). **Production build** (baris `API_BASE_URL` yang di-comment di
+`config.js`) **BELUM disesuaikan** ke kontrak `backend-migrasi` — masih nunjuk
+`backend-production`, jangan diaktifkan begitu saja tanpa update kontrak login-nya juga (lihat
+entri "Bug login tertukar dgn Ekspedisi" di bawah).
 
 ---
 
 ## 🟡 Sedang dikerjakan / dijadwalkan
 
-- [ ] **Keputusan cutover frontend**: kapan & bagaimana `inventory-apk` dialihkan dari
-  `backend-production` ke `backend-migrasi` — per-endpoint bertahap (`APP_CONFIG.API_BASE_URL`
-  diganti cuma untuk panggilan berprefix `/inventory/...` duluan, panggilan Partner/Logo tetap ke
-  `backend-production` krn masih pakai modul Ekspedisi/SJ di sana), atau big-bang sekali semua
-  endpoint Inventory selesai. **Belum diputuskan** — perlu didiskusikan sebelum endpoint pertama
-  (`login`) benar-benar dipakai FE.
+(kosong saat ini — semua endpoint yang dipanggil FE sudah diporting & terhubung ke
+`backend-migrasi`; keputusan cutover frontend sudah diambil: big-bang, semua modul sekaligus,
+lihat "Status saat ini" di atas)
 
 ## 📦 Backlog (belum dijadwalkan, di luar fokus migrasi saat ini)
 
@@ -41,6 +37,62 @@ Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fit
 
 ## ✅ Selesai
 
+- [x] **Bug: `/partner` (list, bare tanpa trailing slash) tidak kebawa header Authorization**
+  (2026-08-22, susulan #3) — `AUTHED_PATH_PREFIXES` di `auth.js` sebelumnya berisi `'/partner/'`
+  (WITH trailing slash), tapi `partner.js::fetchPartnerData()` manggil endpoint list-nya BARE
+  `/partner` (tanpa trailing slash sama sekali) -- substring match `'/partner/'` tidak pernah
+  cocok utk URL itu spesifik, jadi `initAuthInterceptor`'s `ajaxPrefilter` tidak pernah nempelin
+  token ke request itu, backend (benar) tolak 401. Endpoint Partner lainnya
+  (`/partner/material`, dst) kebetulan tidak kena krn memang sudah py segmen path setelahnya.
+  **Fix**: prefix di whitelist dihapus trailing slash-nya (`'/partner'` polos), match sekarang
+  cek batas path (akhir string / `/` / `?` setelah prefix) via `isAuthedPath()`, bukan substring
+  polos -- supaya `/partner` sendirian ikut match tapi hipotetis `/partnerXYZ` tidak. Diverifikasi
+  dgn simulasi Node (semua URL nyata dari app ini dicek match/tidak-nya sesuai harapan) + re-cek
+  live `GET /partner` dgn token ke `backend-migrasi` (200, bukan 401 lagi).
+- [x] **Modul Partner (`src/Partner/`) & Purchasing/Logo (`src/Purchasing/`) diporting**
+  (2026-08-22, susulan #2) — dua modul BARU di `backend-migrasi`, di luar Ekspedisi/Inventory,
+  port dari `backend-production` `API\Partner\{PartnerController,MaterialController,
+  DeliveryController,ReturController}` (endpoint yang dipakai `partner.js` saja — bukan
+  `get-partner-data`/`approve`/`add-payment`/`transaksi/{id}/status`/`delete`/`get-partner-summary`,
+  itu dipakai app lain/tidak dipanggil `inventory-apk`) + `API\PurchasingController` (SEMUA method-nya
+  — cuma 3, dipakai `logo.js`).
+  - **Prefix modul**: Partner `/partner` (SAMA dgn backend-production, sengaja — cuma host-nya
+    yang pindah), Purchasing `/purchasing` (BARU, backend-production-nya top-level tanpa prefix
+    sama sekali).
+  - **[Keputusan sadar user, beda dari default replikasi 1:1]** Backend-production TIDAK punya
+    auth sama sekali di endpoint2 ini (siapa saja yang tahu URL bisa baca/tulis). Di sini
+    **digerbangi JWT** (`AuthMiddleware`), konsisten dgn Ekspedisi/Inventory. Konsekuensi: FE ikut
+    berubah — `src/lib/auth.js::initAuthInterceptor` scope-nya diperluas dari cuma `/inventory/`
+    jadi whitelist `['/inventory/', '/partner/', '/purchasing/']`; `logo.js` dapat prefix
+    `/purchasing` (dulu bare `/get-data-purchase` dst); `partner.js` TIDAK perlu diubah sama
+    sekali (path-nya sudah `/partner/...` dari awal, persis sama dgn backend-production).
+  - **Response envelope SENGAJA beda-beda per controller** (dikutip apa adanya, BUKAN salah
+    porting): Partner/Material/Delivery pakai `{success: bool, ...}`, Retur pakai
+    `{status: bool, ...}` (key BEDA!), Purchasing getDataPurchase pakai `{status: int 200/404/500,
+    ...}` (HTTP response-nya sendiri selalu 200), 2 endpoint upload foto Purchasing pakai
+    `{status: 'done'|'failed'}` (string). Inkonsistensi ini asli dari backend-production.
+  - **Kolom `getDataPurchase` dipangkas** ke yang benar-benar dibaca `logo.js` (10 kolom) — versi
+    asli implicit `SELECT *` gabungan 3 tabel (80+ kolom, `t_penjualan_header`+
+    `t_penjualan_detail_performa`+`m_client`) krn tidak ada `->select()` eksplisit sama sekali,
+    bukan kontrak yang disengaja.
+  - **Observasi (belum diperbaiki, di luar scope port backend)**: `logo.js` pakai
+    `foto_purchase_logo_selesai`/`foto_resin_selesai` (bare filename dari DB, mis.
+    `foto_purchasing_logo1735000000.jpg`) LANGSUNG sbg `<img src>` tanpa prefix host apa pun —
+    baik di backend-production maupun di sini (diporting apa adanya). Kemungkinan sudah lama
+    rusak di app asli juga (bukan regresi porting ini) — foto lama tidak akan tampil di popup
+    preview kalau app jalan sbg Cordova `file://` (perlu URL absolut). Foto BARU (baru diupload)
+    tetap tersimpan benar di server terlepas dari ini.
+  - Diverifikasi live end-to-end thd database produksi: SEMUA endpoint read (list transaksi,
+    material, delivery, retur-by-pengiriman, get-data-purchase) dicek balikin data asli persis
+    sama field-nya. SEMUA endpoint write diuji pakai 1 baris `partner_transaksi` test (FK
+    `id_partner`/`penjualan_detail_performa_id` pinjam dari data asli yg sudah ada, read-only,
+    tidak diubah) — add material (dgn & tanpa foto), add delivery (update agregat
+    `partner_transaksi.jumlah_diterima` dicek benar), input retur (over-retur DITOLAK, pesan sisa
+    dicek benar), input penerimaan retur partial→SELESAI (dicek `jumlah_diterima`/`jumlah_retur`
+    balik ke nilai semula sesuai algoritma asli), 2 endpoint upload foto Purchasing (dicek file
+    fisik + kolom DB, lalu keduanya dikembalikan ke `NULL` semula). Semua baris test
+    (`partner_transaksi`+`_detail`, `partner_detail_pengiriman`, `partner_detail_retur`) &
+    file upload test di-hard-delete setelahnya.
 - [x] **Bug login tertukar dgn Ekspedisi + FE disesuaikan ke kontrak `backend-migrasi`**
   (2026-08-22, susulan) — dua bug ditemukan sekaligus saat menguji login gudang setelah
   `API_BASE_URL` LOCAL diarahkan ke `backend-migrasi`:

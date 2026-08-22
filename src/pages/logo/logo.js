@@ -55,7 +55,12 @@ export function mount(container) {
         jQuery('#logo_value').html('');
 
         jQuery.ajax({
-            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/get-data-purchase', dataType: 'JSON',
+            // [FIX 2026-08-22] '/purchasing' ditambah -- endpoint ini baru
+            // diporting ke backend-migrasi sesi ini (dulu memang tanpa
+            // prefix apa pun di backend-production, lihat
+            // backend-migrasi/src/Purchasing/routes.php utk detail modul &
+            // alasan prefix-nya).
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/purchasing/get-data-purchase', dataType: 'JSON',
             data: {
                 karyawan_id: localStorage.getItem('user_id'),
                 perusahaan_purchase_value: 'empty', type_purchase_filter: 'empty',
@@ -206,7 +211,7 @@ export function mount(container) {
         app.dialog.preloader('Mengunggah foto...');
         jQuery.ajax({
             type: 'POST',
-            url: APP_CONFIG.API_BASE_URL + (isStiker ? '/update-file-foto-purchasing' : '/update-file-resin-purchasing'),
+            url: APP_CONFIG.API_BASE_URL + (isStiker ? '/purchasing/update-file-foto-purchasing' : '/purchasing/update-file-resin-purchasing'),
             dataType: 'JSON', data: fd, contentType: false, processData: false,
             success(data) {
                 app.dialog.close();
