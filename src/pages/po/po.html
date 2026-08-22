@@ -1,4 +1,103 @@
 <!-- ============================================================ -->
+<!-- POPUP: BUAT REQUEST PO                                       -->
+<!-- ============================================================ -->
+<div id="popup-po-request"
+    class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+    <div class="app-overlay-panel bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+            <div>
+                <div class="font-bold text-ink-primary">BUAT REQUEST PO</div>
+                <div class="text-xs text-ink-secondary"><span id="po_req_count">0</span> barang dipilih</div>
+            </div>
+            <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+        </div>
+
+        <div class="p-3">
+            <div class="tbl-wrap mb-3">
+                <table class="tbl-dark tbl-bordered">
+                    <thead>
+                        <tr>
+                            <th class="td-left">BARANG</th>
+                            <th class="td-center">STOK</th>
+                            <th class="td-center">BUTUH</th>
+                            <th class="td-center">DIMINTA</th>
+                            <th class="td-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="po_req_items">
+                        <tr>
+                            <td colspan="5" class="tbl-empty">Tidak ada barang dipilih</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mb-3">
+                <label class="mat-label">PRIORITAS</label>
+                <select id="po_req_priority" class="mat-input">
+                    <option value="LOW">Low</option>
+                    <option value="NORMAL" selected>Normal</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="mat-label">CATATAN (opsional)</label>
+                <textarea id="po_req_notes" rows="2" class="mat-input" style="height:auto;padding-top:10px;"
+                    placeholder="Catatan untuk purchasing..."></textarea>
+            </div>
+
+            <button id="po_req_btn_submit" class="btn-action btn-action--primary">SIMPAN</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- POPUP: DETAIL REQUEST PO (read-only)                         -->
+<!-- ============================================================ -->
+<div id="popup-po-detail"
+    class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+    <div class="app-overlay-panel bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+            <div>
+                <div id="po_det_number" class="font-bold text-ink-primary">-</div>
+                <div class="text-xs text-ink-secondary" id="po_det_meta">-</div>
+            </div>
+            <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-3">
+            <div class="flex items-center gap-1.5 mb-3">
+                <span id="po_det_status_badge" class="mat-badge">-</span>
+                <span id="po_det_priority_badge" class="mat-badge">-</span>
+            </div>
+            <div id="po_det_notes_wrap" class="hidden mb-3 text-sm text-ink-secondary bg-surface-raised rounded-md p-2.5">
+                <span id="po_det_notes"></span>
+            </div>
+            <div class="tbl-wrap">
+                <table class="tbl-dark tbl-bordered" style="min-width:480px;">
+                    <thead>
+                        <tr>
+                            <th class="td-left">BARANG</th>
+                            <th class="td-center">SATUAN</th>
+                            <th class="td-center">DIMINTA</th>
+                            <th class="td-center">PO</th>
+                            <th class="td-center">DITERIMA</th>
+                            <th class="td-center">SISA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="po_det_items">
+                        <tr>
+                            <td colspan="6" class="tbl-empty">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- PAGE CONTENT                                                 -->
 <!-- ============================================================ -->
 <div class="p-3 pb-0">
@@ -19,17 +118,43 @@
                 </svg>
             </button>
         </div>
+
+        <div class="flex gap-2 mb-2.5">
+            <select id="po_filter_month" class="mat-input h-9 text-sm flex-1"></select>
+            <select id="po_filter_year" class="mat-input h-9 text-sm flex-1"></select>
+        </div>
+
+        <div class="search-input-wrap">
+            <input id="po_search" type="text" placeholder="Cari No. Request / Catatan..." class="search-input">
+            <svg class="search-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+            </svg>
+        </div>
     </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- PLACEHOLDER -- menyusul di iterasi berikutnya (lihat TODO      -->
-<!-- di home.js: seleksi butuh-PO di Data, popup Request PO, dan   -->
-<!-- daftar Purchase Request yang dulunya ikon "link-purchase-      -->
-<!-- request" di halaman Data, sekarang jadi tab PO ini)           -->
-<!-- ============================================================ -->
-<div class="px-3 py-10 text-center">
-    <div class="text-ink-muted text-sm">
-        Daftar & Request Purchase Order menyusul di iterasi migrasi berikutnya.
+<div class="p-3">
+    <div class="card-surface overflow-hidden">
+        <div class="tbl-wrap">
+            <table class="tbl-dark tbl-bordered">
+                <thead>
+                    <tr>
+                        <th class="td-center" style="width:6%;">NO</th>
+                        <th class="td-left">NO. REQUEST</th>
+                        <th class="td-center">TGL</th>
+                        <th class="td-center">PRIORITAS</th>
+                        <th class="td-center">STATUS</th>
+                        <th class="td-center">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="po_table">
+                    <tr>
+                        <td colspan="6" class="tbl-empty">Memuat data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

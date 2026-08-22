@@ -55,8 +55,12 @@ export function mount(container) {
   });
   jQuery('#btn-po-request').on('click', () => {
     // Request PO sekarang py tab tersendiri (menu "PO", lihat shell.js) --
-    // TODO(iterasi berikutnya): bawa state.selectedPO ke sana (popup
-    // Request PO, openRequestPOModal di home.js lama), bukan cuma navigate polos.
+    // handoff seleksi lewat localStorage (page module PO beda instance,
+    // tidak bisa saling akses state langsung) supaya po.js bisa buka popup
+    // "Buat Request PO" pre-filled begitu mount, sama pola UX dgn
+    // openRequestPOModal() di home.js lama (F7).
+    const items = Object.keys(state.selectedPO).map((id) => state.selectedPO[id]);
+    localStorage.setItem('po_pending_selection', JSON.stringify(items));
     Router.navigate('/po');
   });
 
@@ -67,8 +71,21 @@ export function mount(container) {
   });
   jQuery('#home_mat_table').on('change', '.po-checkbox', function () {
     const id = jQuery(this).data('id');
-    if (this.checked) state.selectedPO[id] = true;
-    else delete state.selectedPO[id];
+    if (this.checked) {
+      const m = state.data.find((x) => String(x.id) === String(id));
+      if (m) {
+        state.selectedPO[id] = {
+          material_id: m.id,
+          name: m.name,
+          unit_code: m.unit_code,
+          current_stock: m.current_stock,
+          butuh_po: m.butuh_po,
+          qty: m.butuh_po,
+        };
+      }
+    } else {
+      delete state.selectedPO[id];
+    }
     updateFloatingBar();
   });
 

@@ -93,6 +93,53 @@ Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fit
     fisik + kolom DB, lalu keduanya dikembalikan ke `NULL` semula). Semua baris test
     (`partner_transaksi`+`_detail`, `partner_detail_pengiriman`, `partner_detail_retur`) &
     file upload test di-hard-delete setelahnya.
+- [x] **Halaman PO (Request PO) — buat baru + daftar + detail** (2026-08-22, susulan #4) —
+  fitur ini SEBELUMNYA cuma pernah benar-benar diimplementasikan di `inventory` (Framework7
+  lama, `www/js/home.js`) — dua migrasi berikutnya (`inventory-app` PWA, lalu scaffold Cordova
+  app ini) sama-sama cuma naruh `// TODO(iterasi berikutnya)` tanpa pernah dikerjakan.
+  - **Backend** (`backend-migrasi/src/Inventory/Controllers/HomeController.php`, 2 endpoint baru
+    di grup `/inventory/home-dashboard`): `create-purchase-request` (port dari
+    `Purchase\PurchaseRequestService::create()`) & `list-purchase-request` (port dari
+    `::getListForDashboard()`, SEMUA warehouse tercampur, limit 100 terbaru — sama persis versi
+    asli, BUKAN cuma milik warehouse yang login). `requested_by`/`created_by` SELALU dari JWT
+    (`shared_m_users.user_id`), TIDAK PERNAH dari body — beda dari versi asli yang resolve dari
+    `user_id` body via model `Users` (tabel legacy `users`, bukan `shared_m_users`).
+    Notifikasi Firebase (push ke user id 371 tiap create, ada di versi asli) TIDAK diporting --
+    backend-migrasi belum py integrasi Firebase sama sekali. Approve/reject/cancel/update PR
+    (method lain di `PurchaseRequestService`) JUGA TIDAK diporting — itu aksi departemen
+    Purchasing (approve PR → jadi PO), bukan gudang, tidak ada UI-nya di app ini.
+  - **Bug ditemukan & diperbaiki saat verifikasi live (PENTING, di luar scope port method ini
+    sendiri)**: `cfg_m_doc_number` baris `'PR'` py `reset_period=MONTHLY` TAPI
+    `format_pattern`-nya (`'PR-{NNNNN}'`) TIDAK menyisipkan tahun/bulan sama sekali — begitu
+    counter reset ke 1 di bulan baru, nomor yang di-generate ulang collide dgn PR nomor sama
+    yang SUNGGUHAN dari bulan-bulan sebelumnya (`SQLSTATE[23000]` duplicate entry pada
+    `pur_t_purchase_request.uniq_pr_number`, ketangkep pas testing krn sesi sebelumnya kebetulan
+    trigger reset Agustus). Diredam dgn pola yang SAMA persis dgn
+    `MaterialController::generateUniqueCode()` (sync counter ke `MAX(nomor aktual)` dulu sebelum
+    `DocumentNumber::next()`) — **TAPI ini cuma meredam gejala, BUKAN memperbaiki akar
+    masalahnya**: skema `cfg_m_doc_number` utk `'PR'` itu sendiri (tabel SHARED dgn
+    `backend-production`, dipakai `Purchase\PurchaseRequestService` di sana lewat
+    `DocumentNumberService` yang sama) kemungkinan besar kena bug identik kalau bikin PR lewat
+    pergantian bulan di backend-production juga — di luar kendali sesi porting ini utk
+    diperbaiki (butuh keputusan: ganti `reset_period` ke `NONE`, atau tambah `{YY}{MM}` ke
+    `format_pattern`).
+  - **Frontend**: `home.js` — checkbox seleksi (`state.selectedPO`) diperkaya dari sekadar flag
+    boolean jadi objek `{material_id, name, unit_code, current_stock, butuh_po, qty}` (butuh data
+    material utk ditampilkan di popup "Buat Request PO", bukan cuma ID); tombol "Request PO"
+    simpan seleksi ke `localStorage` (`po_pending_selection`, one-shot -- dibaca+dihapus sekali
+    oleh `po.js`) lalu navigate ke `/po` — handoff via localStorage krn Home & PO sekarang page
+    module terpisah (SPA), tidak bisa saling akses state langsung. `po.js` — full rewrite dari
+    placeholder: auto-buka popup "Buat Request PO" pre-filled kalau ada seleksi pending, tabel
+    daftar Request PO (search + filter bulan/tahun, client-side spt stock-in/stock-out) + popup
+    detail (dari cache list, tidak query API terpisah, sama pola dgn versi F7).
+  - Diverifikasi live via Playwright (localStorage auth injection, bypass login form -- tidak
+    py password akun asli) thd `backend-migrasi` dev server + `inventory-apk` dev server
+    sekaligus: pilih 1 barang butuh-PO nyata di Home → floating bar muncul → klik REQUEST PO →
+    tab PO pindah, popup auto-terbuka pre-filled (nama/stok/butuh/qty benar) → submit → toast
+    sukses + list ter-refresh dgn PR baru (status PENDING, prioritas NORMAL, badge warna benar)
+    → buka popup Detail → header (no/tanggal/requester/badge) + item (diminta/po/diterima) semua
+    cocok. Data test (`pur_t_purchase_request`+`_detail`) di-hard-delete setelahnya, row count
+    balik ke 3 (semula).
 - [x] **Bug login tertukar dgn Ekspedisi + FE disesuaikan ke kontrak `backend-migrasi`**
   (2026-08-22, susulan) — dua bug ditemukan sekaligus saat menguji login gudang setelah
   `API_BASE_URL` LOCAL diarahkan ke `backend-migrasi`:

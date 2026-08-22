@@ -57,7 +57,7 @@ inventory-apk/
 │   │   ├── opname/            # sub-tab "Opname" -- stock take: sesi, scan, submit (role-aware), approve/reject
 │   │   ├── stock-in/          # sub-tab "Stock In" -- terima PO
 │   │   ├── stock-out/         # sub-tab "Stock Out" -- keluarkan barang (request produksi)
-│   │   ├── po/                 # tab "PO" (top-level, sejajar STOCK -- 2026-08-21, sebelumnya ikon di Home) -- placeholder, lihat "Status fitur"
+│   │   ├── po/                 # tab "PO" (top-level, sejajar STOCK -- 2026-08-21, sebelumnya ikon di Home) -- buat & lihat Request PO, lihat "Status fitur"
 │   │   ├── partner/           # tab "PARTNER" -- transaksi partner (dari sj-apk)
 │   │   └── logo/              # tab "LOGO" -- upload foto logo stiker/resin (dari sj-apk)
 │   └── styles/main.css       # token warna hijau (brand ekspedisi-apk) + slate netral, lihat ROADMAP.md
@@ -96,12 +96,13 @@ Konvensi tombol & tabel (disamakan lintas STOCK/Master Barang, dan sebagiannya b
 (dashboard stok), Material (list/tambah/edit/hapus), Opname (sesi/scan/submit/approve/detail),
 Stock In (terima PO per-item + foto bukti), Stock Out (keluarkan + foto bukti), Partner (list +
 popup Material/Terima/Retur/History, dari `sj-apk`), Logo (upload foto Stiker/Resin, dari
-`sj-apk`).
+`sj-apk`), **PO** (2026-08-22 — pilih barang butuh-PO di Data → lanjut ke tab PO → buat Request
+PO, + daftar & detail Request PO yang sudah ada; port dari fitur yang cuma pernah ada di
+`inventory` (F7) lama, dua migrasi sebelumnya (`inventory-app`, scaffold Cordova ini) sempat
+menaruh TODO tanpa pernah diimplementasikan).
 
 ⏳ **Belum ada** (fitur sekunder, di luar alur inti terima→simpan→keluar — cari
 `// TODO(iterasi berikutnya)` di masing-masing file untuk titik persisnya):
-- **PO** — tab top-level sudah ada (`src/pages/po/`), tapi isinya masih **placeholder** (belum
-  ada list/detail Purchase Request sungguhan).
 - Retur & replacement (ke supplier maupun dari produksi) di Stock In/Stock Out.
 - Manual Stock In/Out (transaksi ad-hoc di luar PO/SPK).
 - Cetak barcode, export Excel & PDF (Material/Stock In/Opname).
