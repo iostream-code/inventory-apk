@@ -99,12 +99,21 @@ popup Material/Terima/Retur/History, dari `sj-apk`), Logo (upload foto Stiker/Re
 `sj-apk`), **PO** (2026-08-22 — pilih barang butuh-PO di Data → lanjut ke tab PO → buat Request
 PO, + daftar & detail Request PO yang sudah ada; port dari fitur yang cuma pernah ada di
 `inventory` (F7) lama, dua migrasi sebelumnya (`inventory-app`, scaffold Cordova ini) sempat
-menaruh TODO tanpa pernah diimplementasikan).
+menaruh TODO tanpa pernah diimplementasikan), **Stock In/Out Manual** (2026-08-23 — tombol "+" di
+toolbar Stock In & Stock Out, **AdminGudang-only** (role dari JWT, 403 kalau bukan; tombolnya
+sendiri disembunyikan dari StaffGudang di FE) — cari material via search box (partial nama/kode,
+endpoint sama dgn Master Barang), tambah beberapa material + qty sekaligus, submit langsung
+posting ke `wh_t_stock_adjustment` (bukan ke PO/request produksi) — dipakai utk transaksi ad-hoc
+spt hadiah supplier, sisa produksi, retur customer (Stock In) atau barang rusak/hilang/sample QC
+(Stock Out). Port dari `ManualStockInService`/`ManualStockOutService` (`backend-production`,
+belum pernah dipakai live sebelumnya) ke `backend-migrasi` — detail lengkap di ROADMAP.md).
 
 ⏳ **Belum ada** (fitur sekunder, di luar alur inti terima→simpan→keluar — cari
 `// TODO(iterasi berikutnya)` di masing-masing file untuk titik persisnya):
 - Retur & replacement (ke supplier maupun dari produksi) di Stock In/Stock Out.
-- Manual Stock In/Out (transaksi ad-hoc di luar PO/SPK).
+- History Stock In/Out Manual (dokumen yang sudah dibuat lewat "+ Tambah" tidak muncul di list
+  manapun setelah tersimpan -- cuma posting ke stok, tidak ada UI daftar riwayatnya. Backend asli
+  py `getStockInManualHistory`/`getStockOutManualHistory`, TIDAK diport krn belum ada UI-nya).
 - Cetak barcode, export Excel & PDF (Material/Stock In/Opname).
 - Scan kamera untuk barcode di Opname (sudah ada fallback input manual yang fungsional).
 - Notifikasi FCM.

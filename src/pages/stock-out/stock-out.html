@@ -57,6 +57,60 @@
 </div>
 
 <!-- ============================================================ -->
+<!-- POPUP: STOCK OUT MANUAL (AdminGudang saja, lihat stock-out.js) -->
+<!-- ============================================================ -->
+<div id="popup-stockout-manual"
+    class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+    <div class="app-overlay-panel bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+            <div class="font-bold text-ink-primary">Stock Out Manual</div>
+            <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+        </div>
+
+        <div class="p-3">
+            <div class="mb-3 relative">
+                <label class="mat-label">TAMBAH MATERIAL</label>
+                <input id="som_search_input" type="text" class="mat-input" placeholder="Ketik kode / nama material..."
+                    autocomplete="off">
+                <div id="som_search_results"
+                    class="hidden absolute left-0 right-0 z-10 mt-1 max-h-52 overflow-y-auto bg-white border border-ink-faint rounded-md shadow-lg">
+                </div>
+            </div>
+
+            <div class="tbl-wrap mb-3">
+                <table class="tbl-dark tbl-bordered">
+                    <thead>
+                        <tr>
+                            <th class="td-left">MATERIAL</th>
+                            <th class="td-center">STOK</th>
+                            <th class="td-center">QTY KELUAR</th>
+                            <th class="td-center" style="width:10%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="som_items">
+                        <tr>
+                            <td colspan="4" class="tbl-empty">Belum ada material ditambahkan</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mb-3">
+                <label class="mat-label">ALASAN (opsional)</label>
+                <input id="som_reason" type="text" class="mat-input" placeholder="Mis. Kerusakan, Sample QC, Hilang, dll">
+            </div>
+
+            <div class="mb-3">
+                <label class="mat-label">CATATAN (opsional)</label>
+                <textarea id="som_notes" rows="2" class="mat-input h-auto py-2"></textarea>
+            </div>
+
+            <button id="som_btn_submit" class="btn-action btn-action--primary">SIMPAN STOCK OUT</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
 <!-- POPUP: DETAIL REQUEST (read-only)                            -->
 <!-- ============================================================ -->
 <div id="popup-stockout-detail"
@@ -117,6 +171,14 @@
                 <option value="PENDING">Belum Dikeluarkan</option>
                 <option value="PARTIAL">Sebagian</option>
             </select>
+            <!-- Hanya AdminGudang -- ditampilkan via JS (isAdmin()), lihat stock-out.js -->
+            <button id="btn-so-manual" title="Stock Out Manual" class="icon-btn hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+            </button>
             <button id="btn-so-refresh" title="Refresh" class="icon-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2">

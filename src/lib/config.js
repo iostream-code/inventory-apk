@@ -29,8 +29,8 @@
 // di bawah) menyusul.
 export const APP_CONFIG = {
   // Ganti sesuai environment. Untuk device fisik jangan pakai 'localhost', pakai IP LAN atau domain staging.
-  API_BASE_URL: 'http://127.0.0.1:8000', // API LOCAL -- backend-migrasi (Slim)
-  // API_BASE_URL: 'https://indokoper.com/api', // API PRODUCTION -- backend-production, BELUM disesuaikan ke kontrak backend-migrasi (lihat catatan di atas)
+  // API_BASE_URL: 'http://127.0.0.1:8000', // API LOCAL -- backend-migrasi (Slim)
+  API_BASE_URL: 'https://migrasi.koperindo.id', // API PRODUCTION -- backend-production, BELUM disesuaikan ke kontrak backend-migrasi (lihat catatan di atas)
 
   IMAGE_BASE_URL: 'https://indokoper.com', // dipakai utk susun URL foto (mis. photo_url material)
 

@@ -22,6 +22,7 @@ export function mount(container) {
     const warehouseId = () => localStorage.getItem('warehouse_id') || 1;
     const userId = () => localStorage.getItem('user_id') || '0';
     const lokasiPabrik = () => localStorage.getItem('lokasi_pabrik') || '';
+    const isAdmin = () => localStorage.getItem('jabatan') === 'AdminGudang';
 
     const state = {
         poList: [],
@@ -32,7 +33,10 @@ export function mount(container) {
         isLoading: false,
     };
     const receive = { poId: null, photoFile: null };
+    // Stock In manual (2026-08-23, AdminGudang-only) -- items: [{material_id, code, name, unit, currentStock}]
+    const manual = { items: [], photoFile: null };
     let searchTimer = null;
+    let manualSearchTimer = null;
 
     // ── Month/Year ───────────────────────────────────────────
     function buildMonthOptions(selected) {
@@ -82,6 +86,28 @@ export function mount(container) {
     jQuery('#si_rcv_photo_input').on('change', function () { onPhotoSelected(this); });
     jQuery('#si_rcv_photo_clear').on('click', clearPhoto);
     jQuery('#si_rcv_btn_submit').on('click', submitReceive);
+
+    // Tombol "Stock In Manual" -- HANYA AdminGudang (Manajer/SPV), pola sama
+    // gate role di opname.js (isAdmin()). Server juga menolak 403 kalau
+    // bukan AdminGudang (lihat StockInController::submitStockInManual di
+    // backend-migrasi) -- gate di sini murni supaya staff tidak lihat
+    // tombolnya sama sekali, bukan satu-satunya penjaga.
+    if (isAdmin()) jQuery('#btn-si-manual').removeClass('hidden');
+    jQuery('#btn-si-manual').on('click', openManual);
+    jQuery('#sim_search_input').on('input', function () {
+        clearTimeout(manualSearchTimer);
+        const q = jQuery(this).val().trim();
+        if (!q) { jQuery('#sim_search_results').addClass('hidden').empty(); return; }
+        manualSearchTimer = setTimeout(() => manualSearchMaterial(q), 400);
+    });
+    jQuery('#sim_items').on('click', '.sim-btn-remove', function () {
+        const idx = jQuery(this).data('idx');
+        manual.items.splice(idx, 1);
+        renderManualItems();
+    });
+    jQuery('#sim_photo_input').on('change', function () { onManualPhotoSelected(this); });
+    jQuery('#sim_photo_clear').on('click', clearManualPhoto);
+    jQuery('#sim_btn_submit').on('click', submitManual);
 
     // ── Data loading ────────────────────────────────────────
     function fetchActive() {
@@ -234,6 +260,149 @@ export function mount(container) {
                     }
                 },
                 error() { jQuery('#si_rcv_btn_submit').css('opacity', '1').prop('disabled', false); app.dialog.alert('Terjadi kesalahan saat menyimpan'); },
+            });
+        });
+    }
+
+    // ── Stock In Manual (2026-08-23, AdminGudang-only) ───────
+    // Ad-hoc di luar PO (hadiah supplier, sisa produksi, retur customer, dll)
+    // -- posting ke wh_t_stock_adjustment, BUKAN pur_t_receive_warehouse
+    // (lihat StockInController::submitStockInManual di backend-migrasi).
+    function openManual() {
+        manual.items = [];
+        manual.photoFile = null;
+        jQuery('#sim_search_input').val('');
+        jQuery('#sim_search_results').addClass('hidden').empty();
+        jQuery('#sim_notes').val('');
+        clearManualPhoto();
+        renderManualItems();
+        app.popup.open('#popup-stockin-manual');
+    }
+
+    // Cari material via endpoint yang SAMA dgn halaman Master Barang
+    // (POST /inventory/material/get-materials, support search partial nama/
+    // kode/kategori) -- BUKAN /inventory/opname/lookup-material (dipakai
+    // opname.js), krn lookup-material cuma exact-match id/code/barcode,
+    // tidak cocok utk "cari lalu pilih dari daftar" spt yang dibutuhkan di sini.
+    function manualSearchMaterial(query) {
+        jQuery.ajax({
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/material/get-materials', dataType: 'JSON',
+            data: { warehouse_id: warehouseId(), search: query },
+            success(res) {
+                if (res.status === 1) renderManualSearchResults(res.data.materials || []);
+            },
+            error() { /* gagal diam-diam -- dropdown hasil cuma tidak muncul, bukan alert intrusif tiap ketik */ },
+        });
+    }
+
+    function renderManualSearchResults(materials) {
+        const $box = jQuery('#sim_search_results');
+        const alreadyAdded = new Set(manual.items.map((it) => it.material_id));
+        const candidates = materials.filter((m) => !alreadyAdded.has(m.id)).slice(0, 8);
+
+        if (!candidates.length) {
+            $box.html('<div class="px-3 py-2.5 text-sm text-ink-faint">Tidak ada material cocok / sudah semua ditambahkan</div>').removeClass('hidden');
+            return;
+        }
+        $box.html(candidates.map((m) => `
+      <button type="button" class="sim-result-item w-full text-left px-3 py-2 border-b border-ink-faint last:border-0 hover:bg-surface-raised"
+        data-id="${m.id}" data-code="${escHtml(m.code)}" data-name="${escHtml(m.name)}" data-unit="${escHtml(m.unit_abbr || m.unit_code || '-')}" data-stock="${m.current_stock || 0}">
+        <div class="text-sm font-semibold text-ink-primary">${escHtml(m.name)}</div>
+        <div class="text-xs text-ink-secondary">${escHtml(m.code)} &middot; Stok: ${numberFormat(m.current_stock || 0, 0, ',', '.')} ${escHtml((m.unit_abbr || m.unit_code || '').toUpperCase())}</div>
+      </button>
+    `).join('')).removeClass('hidden');
+
+        $box.find('.sim-result-item').on('click', function () {
+            const $b = jQuery(this);
+            manual.items.push({
+                material_id: parseInt($b.data('id'), 10),
+                code: $b.data('code'),
+                name: $b.data('name'),
+                unit: $b.data('unit'),
+                currentStock: parseFloat($b.data('stock')) || 0,
+                qty: '',
+            });
+            jQuery('#sim_search_input').val('');
+            $box.addClass('hidden').empty();
+            renderManualItems();
+        });
+    }
+
+    function renderManualItems() {
+        if (!manual.items.length) {
+            jQuery('#sim_items').html('<tr><td colspan="4" class="tbl-empty">Belum ada material ditambahkan</td></tr>');
+            return;
+        }
+        jQuery('#sim_items').html(manual.items.map((it, i) => `
+      <tr data-idx="${i}">
+        <td class="td-left font-semibold">${escHtml(it.name)} <span class="text-[11px] text-ink-muted font-semibold">| ${escHtml((it.unit || '').toUpperCase())}</span></td>
+        <td class="td-right font-bold">${numberFormat(it.currentStock, 0, ',', '.')}</td>
+        <td class="td-center"><input type="number" class="sim-input-qty mat-input h-8 text-center" data-idx="${i}" min="0" placeholder="0" value="${it.qty}"></td>
+        <td class="td-center"><button type="button" class="sim-btn-remove text-danger text-lg leading-none" data-idx="${i}">&times;</button></td>
+      </tr>
+    `).join(''));
+        jQuery('#sim_items .sim-input-qty').on('input', function () {
+            const idx = jQuery(this).data('idx');
+            manual.items[idx].qty = jQuery(this).val();
+        });
+    }
+
+    function onManualPhotoSelected(input) {
+        if (!input.files || !input.files[0]) return;
+        manual.photoFile = input.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            jQuery('#sim_photo_preview').attr('src', e.target.result);
+            jQuery('#sim_photo_preview_wrap').removeClass('hidden');
+            jQuery('#sim_photo_zone').addClass('hidden');
+        };
+        reader.readAsDataURL(manual.photoFile);
+    }
+    function clearManualPhoto() {
+        manual.photoFile = null;
+        jQuery('#sim_photo_input').val('');
+        jQuery('#sim_photo_preview').attr('src', '');
+        jQuery('#sim_photo_preview_wrap').addClass('hidden');
+        jQuery('#sim_photo_zone').removeClass('hidden');
+    }
+
+    function submitManual() {
+        const rows = [];
+        let valid = false;
+        manual.items.forEach((it) => {
+            const qty = parseFloat(it.qty) || 0;
+            if (qty > 0) valid = true;
+            rows.push({ material_id: it.material_id, qty });
+        });
+        if (!manual.items.length || !valid) { app.dialog.alert('Tambahkan minimal 1 material dengan qty > 0'); return; }
+
+        app.dialog.confirm('Simpan Stock In manual ini?', 'Konfirmasi', () => {
+            jQuery('#sim_btn_submit').css('opacity', '.5').prop('disabled', true);
+            const fd = new FormData();
+            fd.append('warehouse_id', warehouseId());
+            fd.append('user_id', userId());
+            fd.append('items', JSON.stringify(rows));
+            const notes = jQuery('#sim_notes').val().trim();
+            if (notes) fd.append('notes', notes);
+            if (manual.photoFile) fd.append('photo', manual.photoFile);
+
+            jQuery.ajax({
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-in/submit-stockin-manual', dataType: 'JSON',
+                data: fd, processData: false, contentType: false,
+                success(res) {
+                    jQuery('#sim_btn_submit').css('opacity', '1').prop('disabled', false);
+                    if (res.status === 1) {
+                        app.popup.close('#popup-stockin-manual');
+                        app.dialog.alert('Stock In manual berhasil disimpan: ' + (res.data.doc_number || ''));
+                    } else {
+                        app.dialog.alert('Gagal: ' + (res.message || ''));
+                    }
+                },
+                error(xhr) {
+                    jQuery('#sim_btn_submit').css('opacity', '1').prop('disabled', false);
+                    const msg = xhr.status === 403 ? 'Hanya AdminGudang yang boleh melakukan Stock In manual.' : 'Terjadi kesalahan saat menyimpan';
+                    app.dialog.alert(msg);
+                },
             });
         });
     }

@@ -29,7 +29,10 @@ lihat "Status saat ini" di atas)
 
 Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fitur" di
 `README.md`) — porting backend-nya baru relevan setelah fitur frontend-nya ada:
-- Retur & replacement (Stock In/Out), Manual Stock In/Out, Purchase Request list.
+- Retur & replacement (Stock In/Out), Purchase Request list.
+- History Stock In/Out Manual (`getStockInManualHistory`/`getStockOutManualHistory` versi
+  Laravel TIDAK diport bareng Manual Stock In/Out di bawah -- belum ada UI daftar riwayatnya di
+  FE, sama alasan endpoint lain yang di-skip di modul ini).
 - Excel import/template Material, export Excel/PDF (Material/Stock In/Opname) — sengaja
   dilewati saat porting Material & Opname (lihat "Selesai" di bawah), bukan lupa.
 
@@ -37,6 +40,57 @@ Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fit
 
 ## ✅ Selesai
 
+- [x] **Stock In/Out Manual** (2026-08-23) — tombol "+ Tambah" di toolbar tab Stock In & Stock
+  Out (`stock-in.js`/`stock-out.js`), **AdminGudang-only** (Manajer/SPV, sama role yang dipakai
+  approve Opname) — permintaan user, transaksi stok ad-hoc DI LUAR PO/request produksi (mis.
+  hadiah supplier, sisa produksi, retur customer utk Stock In; barang rusak, hilang, sample QC utk
+  Stock Out).
+  - **Backend** (`backend-migrasi/src/Inventory/Controllers/{StockInController,
+    StockOutController}.php`, method baru `submitStockInManual()`/`submitStockOutManual()`,
+    endpoint `POST /inventory/stock-{in,out}/submit-stock{in,out}-manual`) — port dari
+    `App\Services\Inventory\Stock{In,Out}\ManualStock{In,Out}Service::submit()`
+    (`backend-production`, Eloquent) yang ternyata **belum pernah diporting maupun dipakai live**
+    (fitur ini baru diminta sekarang). Posting ke `wh_t_stock_adjustment`/`_detail`
+    (`adjustment_type=IN|OUT`, `source_type=MANUAL`) — TABEL & POLA YANG SAMA dgn yang sudah
+    dipakai `OpnameController::createAdjustmentForOpname()` utk posting selisih opname (beda
+    `source_type=OPNAME`), termasuk cara generate nomor dokumen (`ADJ-{NNNN}`, sync-to-max dulu
+    sebelum `DocumentNumber::next()`, pola sama `MaterialController`/`OpnameController`).
+  - **[PERBAIKAN KEAMANAN dari versi asli, sadar]** Role AdminGudang-only DITAMBAHKAN di sini
+    (`$request->getAttribute('role') !== 'AdminGudang'` → 403) — versi Laravel asli **TIDAK py
+    gate role sama sekali** di endpoint ini (`authorize()` di FormRequest-nya selalu `true`,
+    tidak ada middleware role di route), konsisten dgn "perbaikan keamanan dari versi asli" yang
+    sudah dilakukan di Opname approve/reject sebelumnya.
+  - **Asimetri SENGAJA dipertahankan dari versi asli** (dikutip apa adanya, BUKAN salah porting):
+    Stock In manual terima foto OPSIONAL (`ManualStockInService::submit()` py `storePhoto()`),
+    Stock Out manual **TIDAK ADA foto sama sekali** (`ManualStockOutService::submit()` tidak
+    py penanganan file apa pun). Foto Stock In manual disimpan folder TERPISAH
+    (`uploads/stockin-manual/{id}`) dari foto receive PO (`uploads/stockin/{id}`) — `id`
+    (`wh_t_stock_adjustment.id`) dan `id` receive PO (`pur_t_receive_warehouse.id`) dua
+    auto-increment beda tabel yang independen, kalau dipaksa 1 folder bisa saling timpa kalau
+    kebetulan sama nilainya.
+  - Validasi stok Stock Out manual **cukup diserahkan ke `StockPosting::postOut()`** (sudah
+    row-lock `FOR UPDATE` + lempar exception kalau kurang) — versi Laravel asli py double-check
+    manual `assertOnHandEnough()` SEBELUM manggil postOut(), sengaja TIDAK direplikasi krn
+    redundan (malah kurang aman thd race condition drpd row-lock tunggal di postOut()).
+  - **Frontend** (`stock-in.js`/`stock-out.js`) — popup baru per halaman: search box material
+    (debounced 400ms, panggil `POST /inventory/material/get-materials` yang SAMA dgn halaman
+    Master Barang -- BUKAN `/inventory/opname/lookup-material` yang dipakai flow Opname, krn
+    endpoint itu cuma exact-match id/code/barcode, tidak cocok utk "cari lalu pilih dari daftar
+    hasil" yang dibutuhkan di sini), hasil pencarian jadi dropdown klik-utk-tambah, tabel item
+    terkumpul (qty per baris, tombol hapus per baris), submit sekali utk semua item. Tombol "+"
+    di toolbar (ikon plus, disamakan gaya `icon-btn` yang sudah ada) disembunyikan via
+    `.hidden` dari StaffGudang (`isAdmin()`, pola sama `opname.js`) -- gate FE ini murni UX,
+    bukan satu-satunya penjaga (server tetap 403).
+  - **Diverifikasi live** thd database produksi (bukan cuma `php -l`) -- mint JWT AdminGudang
+    manual (kredensial user asli tidak dicoba/ditebak, `Jwt::issue()` dipanggil langsung dari
+    skrip verifikasi krn secret sudah ada di `.env` lokal) thd 1 material nyata (`MAT-00002`,
+    stok awal 1425): Stock In manual qty 3 → balance 1428 (dicek `wh_t_stock_adjustment(_detail)`
+    & `wh_log_stock_mutation` isinya benar), Stock Out manual qty 2 → balance 1426. Role gate
+    dicek StaffGudang → 403 di KEDUA endpoint. Validasi stok dicek over-stock (qty 999999) →
+    ditolak 422 dgn pesan sisa stok yang benar. Semua baris test
+    (`wh_t_stock_adjustment(_detail)`, `wh_log_stock_mutation`) di-hard-delete + `wh_t_stock_
+    balance` dikembalikan manual ke 1425 setelahnya -- counter `cfg_m_doc_number` (`ADJ`) SENGAJA
+    tidak di-rollback, pola sama verifikasi Material/Opname/Stock In-Out PO sebelumnya.
 - [x] **Bug: `/partner` (list, bare tanpa trailing slash) tidak kebawa header Authorization**
   (2026-08-22, susulan #3) — `AUTHED_PATH_PREFIXES` di `auth.js` sebelumnya berisi `'/partner/'`
   (WITH trailing slash), tapi `partner.js::fetchPartnerData()` manggil endpoint list-nya BARE
