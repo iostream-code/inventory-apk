@@ -123,6 +123,11 @@ export function mount(container) {
             if (deadline10) deadline10.setDate(deadline10.getDate() - 10);
             const isLate = deadline10 && now >= deadline10;
 
+            // Warna (2026-08-24, distandarkan): default (belum ada foto) abu-abu
+            // (bg-ink-secondary), sudah ada foto jadi biru (bg-info) -- dulu
+            // default abu-abu MUDA tanpa latar solid (bg-surface-raised) + sudah
+            // ada foto hijau (bg-primary), diseragamkan ke pola pill solid+putih
+            // yang sama dgn tombol Aksi di halaman lain (lihat .btn-tbl--* main.css).
             const stikerDone = v.foto_purchase_logo_selesai != null;
             const resinDone = v.foto_resin_selesai != null;
 
@@ -136,11 +141,11 @@ export function mount(container) {
           <td class="td-center">${numberFormat(v.penjualan_qty || 0, 0, ',', '.')}</td>
           <td class="td-left">${escHtml(v.bantuan_cabang || 'Surabaya')}</td>
           <td class="td-center">
-            <button class="btn-logo-stiker px-2 py-1 rounded text-[11px] font-bold ${stikerDone ? 'bg-primary text-white' : 'bg-surface-raised text-ink-secondary'}"
+            <button class="btn-logo-stiker px-2 py-1 rounded text-[11px] font-bold ${stikerDone ? 'bg-info text-white' : 'bg-ink-secondary text-white'}"
               data-id="${v.penjualan_detail_performa_id}" data-current="${escHtml(v.foto_purchase_logo_selesai || '')}">Stiker</button>
           </td>
           <td class="td-center">
-            <button class="btn-logo-resin px-2 py-1 rounded text-[11px] font-bold ${resinDone ? 'bg-primary text-white' : 'bg-surface-raised text-ink-secondary'}"
+            <button class="btn-logo-resin px-2 py-1 rounded text-[11px] font-bold ${resinDone ? 'bg-info text-white' : 'bg-ink-secondary text-white'}"
               data-id="${v.penjualan_detail_performa_id}" data-current="${escHtml(v.foto_resin_selesai || '')}">Resin</button>
           </td>
         </tr>

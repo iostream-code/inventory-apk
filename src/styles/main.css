@@ -152,12 +152,19 @@ body {
     @apply bg-surface rounded-md border border-ink-faint shadow-sm;
   }
 
-  /* Tombol ikon utility (Refresh, Master, Sesi Baru, dst di header section
-     menu Stock) -- dulu ikon polos tanpa batas/background (cuma diwarnai
-     text-success/text-cyan-600/dst), tidak kelihatan seperti button
-     sungguhan. Base SELALU abu-abu netral (bukan warna per-ikon) supaya
-     konsisten & warna dipakai hemat, sama pola dgn opn_btn_scan_camera yang
-     dari awal sudah begini (border + text-ink-secondary). */
+  /* Tombol ikon utility (Refresh, Tambah, Riwayat, Master, dst di header
+     section tiap menu). Base tetap abu-abu netral (dipakai apa adanya utk
+     ikon yang TIDAK punya makna semantik warna, mis. Cetak Barcode) --
+     tapi utk 4 aksi standar di bawah, base ini SEKARANG SELALU dipasangkan
+     dgn salah satu modifier warna (2026-08-23, permintaan user, standarisasi
+     lintas SEMUA menu inventory-apk supaya samaan gaya dgn toolbar
+     ekspedisi-apk -- dulu malah SENGAJA diseragamkan netral, lihat histori
+     git kalau perlu ditelusuri, keputusan itu sekarang dibalik):
+       - Refresh & Tambah/+   -> .icon-btn--primary (hijau)
+       - Riwayat               -> .icon-btn--danger (merah)
+       - Master (Stock/Barang) -> .icon-btn--warning (oranye)
+     Ikon SELALU putih di atas modifier warna (text-white di modifier,
+     `stroke="currentColor"` di tiap SVG otomatis ikut). */
   .icon-btn {
     @apply w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md
            bg-surface-raised border border-ink-faint text-ink-secondary
@@ -168,6 +175,36 @@ body {
   }
   .icon-btn:active {
     @apply bg-ink-faint;
+  }
+
+  .icon-btn--primary {
+    @apply bg-primary border-transparent text-white;
+  }
+  .icon-btn--primary:hover {
+    @apply bg-primary text-white brightness-90;
+  }
+  .icon-btn--primary:active {
+    @apply brightness-75;
+  }
+
+  .icon-btn--danger {
+    @apply bg-danger border-transparent text-white;
+  }
+  .icon-btn--danger:hover {
+    @apply bg-danger text-white brightness-90;
+  }
+  .icon-btn--danger:active {
+    @apply brightness-75;
+  }
+
+  .icon-btn--warning {
+    @apply bg-warning border-transparent text-white;
+  }
+  .icon-btn--warning:hover {
+    @apply bg-warning text-white brightness-90;
+  }
+  .icon-btn--warning:active {
+    @apply brightness-75;
   }
 
   .section-title {
@@ -318,33 +355,38 @@ body {
     @apply bg-blue-100 text-blue-700;
   }
 
-  /* Tombol aksi kolom OPSI/tabel (Data, Master Barang/Material, Stock In,
-     Stock Out, Opname) -- dulu tulisan berwarna polos TANPA background sama
-     sekali (tidak kelihatan seperti button sungguhan). Sekarang SEMUA py
-     background abu-abu (bg-surface-overlay) sbg dasarnya -- warna teks per
-     aksi (primary/danger/success) DIPERTAHANKAN di atas dasar abu itu utk
-     tetap bisa dibedakan sekilas (Hapus vs Detail vs Receive), bukan
-     diseragamkan total spt .btn-table-action ekspedisi-apk (beda konteks:
-     di sana 1 aksi/baris, di sini bisa 2 aksi bersebelahan dlm 1 sel spt
-     Edit+Hapus di Master Barang, jadi label & warna sama-sama masih perlu
-     bantu bedakan dgn cepat).
-     .btn-tbl--out (dipakai stock-out.js "Keluar") SEBELUMNYA tidak py
-     definisi CSS sama sekali (bug -- tampil sbg link biru default browser,
-     bukan cuma "kurang gaya"), ditambahkan sekalian. */
-  .btn-tbl--detail {
-    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-primary font-bold text-[11px] mr-1.5 whitespace-nowrap hover:bg-ink-faint transition-colors;
+  /* Tombol aksi kolom AKSI/OPSI (Data, Master Barang/Material, Stock In,
+     Stock Out, Opname, PO) -- distandarkan (2026-08-24, permintaan user)
+     supaya SAMA PERSIS gaya tombol Aksi di halaman Partner (lihat BTN_BASE/
+     BTN_SUCCESS/BTN_INFO/BTN_DEFAULT di partner.js): pill lebar TETAP
+     (w-[72px]), latar warna SOLID + teks putih -- BUKAN lagi latar abu-abu
+     seragam + teks berwarna spt sebelumnya. Warna per aksi TETAP beda
+     supaya 2 aksi bersebelahan dlm 1 sel (mis. Edit+Hapus di Master Barang,
+     Receive+Detail di Stock In) tetap gampang dibedakan sekilas.
+     `mr-1.5` dipasang di SEMUA (bukan cuma .btn-tbl--detail spt sebelumnya)
+     -- Receive/Keluar/Out selalu tombol PERTAMA saat berpasangan dgn Detail
+     di sel yang sama (Stock In/Out), jadi butuh margin kanan juga; aman
+     dipasang di tombol yang sendirian/terakhir juga (tidak ada apa pun yg
+     terlihat beda, cuma sedikit spasi kosong tidak terpakai).
+     .btn-tbl--pr-detail (dipakai po.js "DETAIL" di tabel Request PO)
+     SEBELUMNYA tidak py definisi CSS sama sekali (bug -- tampil sbg link
+     biru default browser) -- SEKARANG digabung 1 rule dgn .btn-tbl--detail
+     (2026-08-24, susulan #2: PO ikut diseragamkan abu-abu juga, sempat
+     dipisah sebentar waktu baru Stock/Data/Master Barang yang diminta). */
+  .btn-tbl--detail,
+  .btn-tbl--pr-detail {
+    /* Abu-abu -- token "default/netral" yang sama dipakai Partner
+       (BTN_DEFAULT = bg-ink-secondary text-white). */
+    @apply inline-block w-[72px] text-center px-2 py-1 rounded bg-ink-secondary text-white font-bold text-[11px] mr-1.5 whitespace-nowrap hover:brightness-90 transition;
   }
 
   .btn-tbl--delete {
-    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-danger font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
+    @apply inline-block w-[72px] text-center px-2 py-1 rounded bg-danger text-white font-bold text-[11px] mr-1.5 whitespace-nowrap hover:brightness-90 transition;
   }
 
-  .btn-tbl--receive {
-    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-success font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
-  }
-
+  .btn-tbl--receive,
   .btn-tbl--out {
-    @apply inline-block px-2 py-1 rounded bg-surface-overlay text-primary font-bold text-[11px] whitespace-nowrap hover:bg-ink-faint transition-colors;
+    @apply inline-block w-[72px] text-center px-2 py-1 rounded bg-success text-white font-bold text-[11px] mr-1.5 whitespace-nowrap hover:brightness-90 transition;
   }
 
   .summary-card {
