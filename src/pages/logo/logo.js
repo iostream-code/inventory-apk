@@ -26,7 +26,7 @@ export function mount(container) {
     container.innerHTML = tpl;
     showAuthedShell('/logo');
 
-    const state = { all: [], filtered: [], currentPage: 1 };
+    const state = { all: [], filtered: [], currentPage: 1, historyData: [], filteredHistoryData: [] };
     const photo = { type: null, id: null, dataUrl: null };
 
     // ── Events ──────────────────────────────────────────────
@@ -40,8 +40,20 @@ export function mount(container) {
     jQuery('#logo_value').on('click', '.btn-logo-resin', function () {
         openPhotoPopup('resin', jQuery(this).data('id'), jQuery(this).data('current'));
     });
+    // History: badge Stiker/Resin di popup riwayat CUMA preview (read-only)
+    // -- item di History sudah lengkap, jadi tidak perlu form
+    // upload/ganti foto seperti di tabel Data utama.
+    jQuery('#data_history_logo').on('click', '.btn-logo-stiker', function () {
+        openPhotoView('stiker', jQuery(this).data('current'));
+    });
+    jQuery('#data_history_logo').on('click', '.btn-logo-resin', function () {
+        openPhotoView('resin', jQuery(this).data('current'));
+    });
     jQuery('#logo_photo_input').on('change', function () { onPhotoSelected(this); });
     jQuery('#btn-logo-photo-save').on('click', savePhoto);
+
+    jQuery('#btn-logo-history').on('click', openHistory);
+    jQuery('#filter_history_logo').on('input', cariHistoryLogo);
 
     jQuery('#tombol_paginasi_logo').on('click', '.pag-btn', function () {
         state.currentPage = parseInt(jQuery(this).data('page'));
@@ -68,12 +80,12 @@ export function mount(container) {
             },
             success(data) {
                 app.dialog.close();
-                // Hanya item jenis "HC" yang belum lengkap foto stiker/resin-nya
-                // (persis logika filter di app lama).
-                state.all = (data.data || []).filter((v) =>
-                    (v.penjualan_jenis || '').indexOf('HC') !== -1 &&
-                    (v.foto_purchase_logo_selesai == null || v.foto_resin_selesai == null)
-                );
+                // Hanya item jenis "HC" (persis logika filter di app lama) --
+                // dipecah dua: "all" (Data, masih ada foto stiker/resin yang
+                // kosong) & "historyData" (History, dua-duanya sudah lengkap).
+                const hcItems = (data.data || []).filter((v) => (v.penjualan_jenis || '').indexOf('HC') !== -1);
+                state.all = hcItems.filter((v) => v.foto_purchase_logo_selesai == null || v.foto_resin_selesai == null);
+                state.historyData = hcItems.filter((v) => v.foto_purchase_logo_selesai != null && v.foto_resin_selesai != null);
                 // SPK terbaru dulu (DESC). Backend /get-data-purchase sengaja
                 // ORDER BY penjualan_id ASC (endpoint dipakai bareng halaman
                 // produksi utk antrian FIFO) -- jadi di-reverse di sini saja,
@@ -81,7 +93,9 @@ export function mount(container) {
                 // penjualan_id formatnya "INV_" + 5 digit angka rata (fixed-
                 // width, lihat generator ID di CrmController), jadi aman
                 // di-sort sbg string.
-                state.all.sort((a, b) => String(b.penjualan_id || '').localeCompare(String(a.penjualan_id || '')));
+                const byPenjualanIdDesc = (a, b) => String(b.penjualan_id || '').localeCompare(String(a.penjualan_id || ''));
+                state.all.sort(byPenjualanIdDesc);
+                state.historyData.sort(byPenjualanIdDesc);
                 applyFilter();
             },
             error() { app.dialog.close(); jQuery('#logo_count').text(0); app.dialog.alert('Gagal memuat data'); },
@@ -161,6 +175,62 @@ export function mount(container) {
         </div>
       `
         );
+    }
+
+    // ── Popup: History (SPK yang stiker & resin-nya sudah lengkap) ──
+    function buildLogoHistoryRow(v) {
+        return `
+        <tr>
+          <td class="td-left font-bold text-primary-brand whitespace-nowrap">${ddmmyy(v.penjualan_tanggal)}-${escHtml(removePrefix(v.penjualan_id))}</td>
+          <td class="td-left font-semibold">${escHtml(v.client_nama || '-')}</td>
+          <td class="td-left">${escHtml(v.penjualan_jenis || '-')}</td>
+          <td class="td-center">
+            <button class="btn-logo-stiker px-2 py-1 rounded text-[11px] font-bold bg-info text-white"
+              data-current="${escHtml(v.foto_purchase_logo_selesai || '')}">Stiker</button>
+          </td>
+          <td class="td-center">
+            <button class="btn-logo-resin px-2 py-1 rounded text-[11px] font-bold bg-info text-white"
+              data-current="${escHtml(v.foto_resin_selesai || '')}">Resin</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function matchesHistorySearchTerm(v, term) {
+        return (
+            (v.client_nama || '').toLowerCase().includes(term) ||
+            (v.penjualan_jenis || '').toLowerCase().includes(term) ||
+            (v.penjualan_id || '').toLowerCase().includes(term)
+        );
+    }
+
+    function renderHistoryTable() {
+        jQuery('#jumlah_history_logo').text(state.filteredHistoryData.length);
+        jQuery('#data_history_logo').html(
+            state.filteredHistoryData.length
+                ? state.filteredHistoryData.map(buildLogoHistoryRow).join('')
+                : '<tr><td colspan="5" class="tbl-empty">Belum ada history</td></tr>'
+        );
+    }
+
+    function cariHistoryLogo() {
+        const term = (jQuery('#filter_history_logo').val() || '').toLowerCase().trim();
+        state.filteredHistoryData = !term ? state.historyData : state.historyData.filter((v) => matchesHistorySearchTerm(v, term));
+        renderHistoryTable();
+    }
+
+    function openHistory() {
+        jQuery('#filter_history_logo').val('');
+        state.filteredHistoryData = state.historyData;
+        renderHistoryTable();
+        app.popup.open('#popup-logo-history');
+    }
+
+    // ── Popup: preview foto read-only (dipanggil dari History) ──
+    function openPhotoView(type, currentUrl) {
+        jQuery('#logo_photo_view_title').text(type === 'stiker' ? 'Logo Stiker' : 'Logo Resin');
+        jQuery('#logo_photo_view_img').attr('src', currentUrl || '');
+        app.popup.open('#popup-logo-photo-view');
     }
 
     // ── Popup foto (Stiker / Resin) ───────────────────────────
