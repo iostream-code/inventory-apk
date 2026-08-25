@@ -210,12 +210,12 @@ export function mount(container) {
   }
 
   function setPeriod(months) {
-    jQuery('.home-period-btn').css({ background: '', color: '' }).removeClass('bg-primary text-white');
+    jQuery('.home-period-btn').css({ background: '', color: '' }).removeClass('bg-primary text-black');
     if (state.months === months) {
       state.months = 'all';
     } else {
       state.months = months;
-      jQuery(`.home-period-btn[data-months="${months}"]`).addClass('bg-primary text-white');
+      jQuery(`.home-period-btn[data-months="${months}"]`).addClass('bg-primary text-black');
     }
     fetchDashboard();
   }
@@ -225,7 +225,7 @@ export function mount(container) {
     state.months = 'all';
     state.searchKeyword = '';
     jQuery('#home_search').val('');
-    jQuery('.home-period-btn').removeClass('bg-primary text-white');
+    jQuery('.home-period-btn').removeClass('bg-primary text-black');
     fetchDashboard();
   }
 

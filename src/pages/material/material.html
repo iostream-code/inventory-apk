@@ -13,7 +13,7 @@
             <div id="mat_form_code_wrap" class="hidden">
                 <label class="mat-label">KODE MATERIAL</label>
                 <input id="mat_form_code_display" type="text" class="mat-input opacity-80" readonly
-                    style="color:var(--color-primary-light);">
+                    style="color:var(--text-muted);font-weight:700;">
             </div>
             <input type="hidden" id="mat_form_id" value="">
 
@@ -48,7 +48,7 @@
             <div>
                 <label class="mat-label">TIPE MATERIAL</label>
                 <label id="mat_form_stockable_label"
-                    class="flex items-center gap-3 cursor-pointer p-3 bg-white border-[1.5px] border-green-200 rounded-md transition-colors">
+                    class="flex items-center gap-3 cursor-pointer p-3 bg-white border-[1px] border-green-200 rounded-md transition-colors">
                     <input type="checkbox" id="mat_form_is_stockable" checked
                         class="w-[18px] h-[18px] accent-green-600 flex-shrink-0 cursor-pointer">
                     <div>
@@ -107,7 +107,7 @@
             <div class="flex items-center gap-2.5 mb-2.5 flex-wrap">
                 <div class="flex items-center gap-1.5 flex-1 min-w-0">
                     <span class="section-title">Data</span>
-                    <span class="fs-11 text-ink-faint">|</span>
+                    <span class="fs-14 text-ink-faint">|</span>
                     <span id="mat_total_count" class="section-count">0</span>
                 </div>
 
@@ -120,7 +120,8 @@
                         <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
                     </svg>
                 </button>
-                <button id="btn-mat-barcode" title="Cetak Barcode (segera hadir)" class="icon-btn">
+                <button id="btn-mat-barcode" title="Cetak Barcode (pilih material dulu via checkbox)"
+                    class="icon-btn icon-btn--warning">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2">
                         <rect x="3" y="5" width="2" height="14" />
@@ -164,9 +165,13 @@
     <div class="p-3">
         <div class="card-surface overflow-hidden">
             <div class="tbl-wrap">
-                <table class="tbl-dark tbl-bordered" style="min-width:520px;">
+                <table class="tbl-dark tbl-bordered" style="min-width:560px;">
                     <thead>
                         <tr>
+                            <th class="td-center" style="width:6%;">
+                                <input type="checkbox" id="mat_select_all" title="Pilih semua (utk Cetak Barcode)"
+                                    class="w-4 h-4 accent-green-600 cursor-pointer">
+                            </th>
                             <th class="td-center" style="width:5%;">NO</th>
                             <th class="td-left">KODE</th>
                             <th class="td-left">NAMA MATERIAL</th>
@@ -178,7 +183,7 @@
                     </thead>
                     <tbody id="mat_table">
                         <tr>
-                            <td colspan="7" class="tbl-empty">Memuat data...</td>
+                            <td colspan="8" class="tbl-empty">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>

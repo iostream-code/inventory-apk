@@ -31,6 +31,10 @@ export function mount(container) {
         filterStatus: 'all',
         isLoading: false,
         photoFile: null,
+        // Cetak Barcode (2026-08-24) -- Map id->material (bukan cuma Set id)
+        // supaya seleksi tetap dibawa kalau user ganti search/filter di antara
+        // memilih & mencetak (state.data diganti tiap fetchMaterials()).
+        selected: new Map(),
     };
 
     let searchTimer = null;
@@ -55,13 +59,7 @@ export function mount(container) {
         fetchMaterials();
     });
     jQuery('#btn-mat-add').on('click', () => openForm());
-    jQuery('#btn-mat-barcode').on('click', () => {
-        // TODO(iterasi berikutnya): dulu pakai JsBarcode + cordova-pdf-generator/
-        // socialsharing (plugin native). Di web perlu diganti library print
-        // berbasis browser (mis. window.print() ke halaman khusus, atau
-        // jsPDF). Belum diimplementasikan di scaffold ini.
-        app.dialog.alert('Cetak barcode akan menyusul di iterasi berikutnya (perlu penggantinya di web).');
-    });
+    jQuery('#btn-mat-barcode').on('click', printSelectedBarcodes);
 
     jQuery('#mat_table').on('click', '.btn-tbl--detail', function (e) {
         e.preventDefault();
@@ -70,6 +68,24 @@ export function mount(container) {
     jQuery('#mat_table').on('click', '.btn-tbl--delete', function (e) {
         e.preventDefault();
         deleteMaterial(jQuery(this).data('id'), jQuery(this).data('name'));
+    });
+    jQuery('#mat_table').on('change', '.mat-row-check', function () {
+        const id = jQuery(this).data('id');
+        if (this.checked) {
+            const m = state.data.find((x) => String(x.id) === String(id));
+            if (m) state.selected.set(id, m);
+        } else {
+            state.selected.delete(id);
+        }
+        updateSelectAllState();
+    });
+    jQuery('#mat_select_all').on('change', function () {
+        const checkAll = this.checked;
+        state.data.forEach((m) => {
+            if (checkAll) state.selected.set(m.id, m);
+            else state.selected.delete(m.id);
+        });
+        renderTable();
     });
 
     jQuery('#mat_form_is_stockable').on('change', function () {
@@ -147,19 +163,22 @@ export function mount(container) {
 
         if (!items.length) {
             const msg = state.searchQuery ? 'Tidak ada material yang cocok' : 'Belum ada data material';
-            jQuery('#mat_table').html(`<tr><td colspan="7" class="tbl-empty">${msg}</td></tr>`);
+            jQuery('#mat_table').html(`<tr><td colspan="8" class="tbl-empty">${msg}</td></tr>`);
+            updateSelectAllState();
             return;
         }
 
         const rows = items.map((m, i) => {
             const cfg = STATUS_CFG[m.stock_status] || { label: '-', cls: '' };
-            const stokColor = m.current_stock <= 0 ? 'var(--color-danger)' : (m.stock_status === 'low' ? 'var(--color-primary-light)' : 'var(--text-primary)');
+            const stokColor = m.current_stock <= 0 ? 'var(--color-danger)' : (m.stock_status === 'low' ? 'var(--color-primary)' : 'var(--text-primary)');
             const minMaxCell = m.is_stockable === false
                 ? `<td class="td-center whitespace-nowrap" colspan="1" style="font-weight:700;font-size:11px;background:#fffbeb;color:#d97706;">PO SPK</td>`
                 : `<td class="td-right whitespace-nowrap" style="font-weight:600;">${numberFormat(m.min_stock, 0, ',', '.')}</td>`;
+            const isChecked = state.selected.has(m.id);
 
             return `
         <tr class="${i % 2 !== 0 ? 'bg-surface-raised/50' : ''}">
+          <td class="td-center whitespace-nowrap"><input type="checkbox" class="mat-row-check w-4 h-4 accent-green-600 cursor-pointer" data-id="${m.id}" ${isChecked ? 'checked' : ''}></td>
           <td class="td-center font-semibold whitespace-nowrap">${i + 1}</td>
           <td class="td-left whitespace-nowrap">${escHtml(m.code || '-')}</td>
           <td class="td-left font-semibold whitespace-nowrap">${escHtml(m.name)} <span class="text-[10px] text-ink-muted font-semibold">| ${escHtml(m.unit_code || m.unit_abbr || '-')}</span></td>
@@ -175,13 +194,59 @@ export function mount(container) {
         }).join('');
 
         jQuery('#mat_table').html(rows);
+        updateSelectAllState();
+    }
+
+    // ── Cetak Barcode (2026-08-24) ────────────────────────────
+    // Checkbox per baris + "pilih semua" di header tabel -- toolbar
+    // #btn-mat-barcode generate 1 PDF berisi label semua material yang
+    // dicentang (lihat src/lib/barcodeLabels.js). Nilai barcode-nya sendiri
+    // sudah dibuat backend (auto-generate saat material dibuat), fitur ini
+    // murni merender & mencetaknya.
+    function updateSelectAllState() {
+        const visibleIds = state.data.map((m) => m.id);
+        const allChecked = visibleIds.length > 0 && visibleIds.every((id) => state.selected.has(id));
+        jQuery('#mat_select_all').prop('checked', allChecked);
+        jQuery('#btn-mat-barcode').attr(
+            'title',
+            state.selected.size > 0 ? `Cetak Barcode (${state.selected.size} dipilih)` : 'Cetak Barcode (pilih material dulu via checkbox)'
+        );
+    }
+
+    function printSelectedBarcodes() {
+        const materials = Array.from(state.selected.values());
+        if (!materials.length) {
+            app.dialog.alert('Pilih minimal 1 material (centang di kolom paling kiri) untuk dicetak barcode-nya.');
+            return;
+        }
+        const withoutBarcode = materials.filter((m) => !m.barcode).length;
+        const warn = withoutBarcode > 0 ? `\n\n${withoutBarcode} material tidak punya barcode, akan ditandai kosong di label.` : '';
+
+        app.dialog.confirm(`Cetak ${materials.length} label barcode?${warn}`, 'Konfirmasi', async () => {
+            app.dialog.preloader('Membuat PDF...');
+            try {
+                // Dynamic import -- jsPDF (+ dependensi internalnya, html2canvas/
+                // dompurify, ikut kebawa walau tidak dipakai) berat (~250KB gzip).
+                // Di-lazy-load di sini (bukan static import di atas) supaya TIDAK
+                // ikut bundle utama app (SPA hash-router, 1 bundle utk semua
+                // halaman) -- cuma diunduh/parse sekali saat tombol ini benar-benar
+                // dipakai.
+                const { printBarcodeLabels } = await import('../../lib/barcodeLabels.js');
+                await printBarcodeLabels(materials);
+            } catch (err) {
+                console.error('[material] printBarcodeLabels error:', err);
+                app.dialog.alert('Gagal membuat PDF barcode.');
+            } finally {
+                app.dialog.close();
+            }
+        });
     }
 
     // ── Form tambah/edit ─────────────────────────────────────
     function toggleStockable(isStockable) {
         jQuery('#mat_form_minmax_section').toggleClass('hidden', !isStockable);
         jQuery('#mat_form_stockable_title').text(isStockable ? 'Dapat Di-Stock' : 'PO by SPK (tanpa stok)');
-        jQuery('#mat_form_stockable_label').toggleClass('border-green-200', isStockable).toggleClass('border-amber-200', !isStockable);
+        jQuery('#mat_form_stockable_label').toggleClass('border-green-400', isStockable).toggleClass('border-green-200', !isStockable);
     }
 
     function openForm(editData) {

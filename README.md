@@ -106,15 +106,24 @@ endpoint sama dgn Master Barang), tambah beberapa material + qty sekaligus, subm
 posting ke `wh_t_stock_adjustment` (bukan ke PO/request produksi) — dipakai utk transaksi ad-hoc
 spt hadiah supplier, sisa produksi, retur customer (Stock In) atau barang rusak/hilang/sample QC
 (Stock Out). Port dari `ManualStockInService`/`ManualStockOutService` (`backend-production`,
-belum pernah dipakai live sebelumnya) ke `backend-migrasi` — detail lengkap di ROADMAP.md).
+belum pernah dipakai live sebelumnya) ke `backend-migrasi` — detail lengkap di ROADMAP.md),
+**Retur Produksi** (2026-08-24 — tombol "Retur Produksi" di toolbar Stock Out, Inbox/Riwayat +
+Approve/Terima/Tolak sisi gudang atas retur barang dari Produksi; retur sendiri DIBUAT di
+`produksi-apk`/`backend-production`, tabel shared — lihat detail lengkap & hasil verifikasi live
+di ROADMAP.md), **Cetak Barcode** (2026-08-24 — checkbox per baris + "pilih semua" di tabel
+Master Barang, tombol toolbar "Cetak Barcode" generate 1 PDF berisi label (nama, kode, barcode
+CODE128) utk semua material yang dicentang, disimpan/dibuka via `cordova-plugin-file` +
+`cordova-plugin-file-opener2` (pola sama `purchase-finance-apk`) — 100% client-side, tidak ada
+endpoint backend baru krn nilai barcode-nya sendiri sudah dibuat backend saat material dibuat).
 
 ⏳ **Belum ada** (fitur sekunder, di luar alur inti terima→simpan→keluar — cari
 `// TODO(iterasi berikutnya)` di masing-masing file untuk titik persisnya):
-- Retur & replacement (ke supplier maupun dari produksi) di Stock In/Stock Out.
+- Retur & replacement **Stock In** (ke supplier + terima replacement) — beda dari Retur Produksi
+  (Stock Out) yang sudah ada, lihat "Backlog" di ROADMAP.md untuk alasan belum diporting.
 - History Stock In/Out Manual (dokumen yang sudah dibuat lewat "+ Tambah" tidak muncul di list
   manapun setelah tersimpan -- cuma posting ke stok, tidak ada UI daftar riwayatnya. Backend asli
   py `getStockInManualHistory`/`getStockOutManualHistory`, TIDAK diport krn belum ada UI-nya).
-- Cetak barcode, export Excel & PDF (Material/Stock In/Opname).
+- Export Excel & PDF (Stock In/Opname) — Cetak Barcode (Material) sudah ada, ini modul lain.
 - Scan kamera untuk barcode di Opname (sudah ada fallback input manual yang fungsional).
 - Notifikasi FCM.
 - Popup Detail SPK di Logo.

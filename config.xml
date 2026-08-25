@@ -43,4 +43,9 @@
     <plugin name="cordova-plugin-device" spec="^2.1.0" />
     <plugin name="cordova-plugin-statusbar" spec="^3.0.0" />
     <plugin name="cordova-plugin-splashscreen" spec="^6.0.2" />
+    <!-- Cetak Barcode (2026-08-24) simpan PDF label ke storage device lalu
+         buka via file-opener2, pola sama purchase-finance-apk (lihat
+         src/lib/pdfSave.js). -->
+    <plugin name="cordova-plugin-file" spec="8.1.3" />
+    <plugin name="cordova-plugin-file-opener2" spec="4.0.0" />
 </widget>

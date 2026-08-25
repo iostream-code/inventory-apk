@@ -37,13 +37,31 @@
 }
 
 @keyframes pulse-green {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px #00ff00, 0 0 16px #00ff00; }
-  50% { opacity: 0.6; box-shadow: 0 0 4px #00ff00, 0 0 8px #00ff00; }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px #00ff00, 0 0 16px #00ff00;
+  }
+
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 4px #00ff00, 0 0 8px #00ff00;
+  }
 }
 
 @keyframes pulse-red {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px #ff0000, 0 0 16px #ff0000; }
-  50% { opacity: 0.4; box-shadow: 0 0 4px #ff0000, 0 0 8px #ff0000; }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px #ff0000, 0 0 16px #ff0000;
+  }
+
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 4px #ff0000, 0 0 8px #ff0000;
+  }
 }
 
 /* =============================================================================
@@ -166,13 +184,13 @@ body {
      Ikon SELALU putih di atas modifier warna (text-white di modifier,
      `stroke="currentColor"` di tiap SVG otomatis ikut). */
   .icon-btn {
-    @apply w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md
-           bg-surface-raised border border-ink-faint text-ink-secondary
-           transition-colors;
+    @apply w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-md bg-surface-raised border border-ink-faint text-ink-secondary transition-colors;
   }
+
   .icon-btn:hover {
     @apply bg-surface-overlay text-ink-primary;
   }
+
   .icon-btn:active {
     @apply bg-ink-faint;
   }
@@ -180,9 +198,11 @@ body {
   .icon-btn--primary {
     @apply bg-primary border-transparent text-white;
   }
+
   .icon-btn--primary:hover {
     @apply bg-primary text-white brightness-90;
   }
+
   .icon-btn--primary:active {
     @apply brightness-75;
   }
@@ -190,9 +210,11 @@ body {
   .icon-btn--danger {
     @apply bg-danger border-transparent text-white;
   }
+
   .icon-btn--danger:hover {
     @apply bg-danger text-white brightness-90;
   }
+
   .icon-btn--danger:active {
     @apply brightness-75;
   }
@@ -200,19 +222,21 @@ body {
   .icon-btn--warning {
     @apply bg-warning border-transparent text-white;
   }
+
   .icon-btn--warning:hover {
     @apply bg-warning text-white brightness-90;
   }
+
   .icon-btn--warning:active {
     @apply brightness-75;
   }
 
   .section-title {
-    @apply text-sm font-bold text-ink-primary;
+    @apply text-lg font-bold text-ink-primary;
   }
 
   .section-count {
-    @apply text-xs font-semibold text-ink-secondary;
+    @apply text-lg font-semibold text-ink-secondary;
   }
 
   .btn-action {

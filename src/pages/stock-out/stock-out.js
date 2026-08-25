@@ -103,6 +103,29 @@ export function mount(container) {
     });
     jQuery('#som_btn_submit').on('click', submitManual);
 
+    // Retur Produksi -- semua role Gudang boleh buka (lihat isAdmin() di
+    // dalam renderReturDetail utk gate tombol aksi).
+    jQuery('#btn-so-retur').on('click', openReturPopup);
+    jQuery('#sr_tab_inbox').on('click', () => setReturTab('inbox'));
+    jQuery('#sr_tab_history').on('click', () => setReturTab('history'));
+    jQuery('#sr_filter_status').on('change', () => { retur.filterStatus = jQuery('#sr_filter_status').val(); fetchReturList(); });
+    jQuery('#sr_filter_source').on('change', () => { retur.filterSource = jQuery('#sr_filter_source').val(); fetchReturList(); });
+    jQuery('#sr_filter_month, #sr_filter_year').on('change', () => {
+        const m = jQuery('#sr_filter_month').val(), y = jQuery('#sr_filter_year').val();
+        retur.filterMonth = m ? parseInt(m) : null;
+        retur.filterYear = y ? parseInt(y) : null;
+        fetchReturList();
+    });
+    jQuery('#sr_search').on('input', () => {
+        retur.searchQuery = jQuery('#sr_search').val();
+        clearTimeout(returSearchTimer);
+        returSearchTimer = setTimeout(fetchReturList, 400);
+    });
+    jQuery('#sr_list_table').on('click', '.btn-tbl--detail', function (e) { e.preventDefault(); openReturDetail(jQuery(this).data('id')); });
+    jQuery('#sr_btn_back').on('click', backToReturList);
+    jQuery('#sr_btn_primary').on('click', () => submitReturAction(jQuery('#sr_btn_primary').data('action')));
+    jQuery('#sr_btn_reject').on('click', () => submitReturAction('reject'));
+
     // ── Data loading ────────────────────────────────────────
     function fetchActive() {
         if (state.isLoading) return;
@@ -387,6 +410,195 @@ export function mount(container) {
                 error(xhr) {
                     jQuery('#som_btn_submit').css('opacity', '1').prop('disabled', false);
                     const msg = xhr.status === 403 ? 'Hanya AdminGudang yang boleh melakukan Stock Out manual.' : 'Terjadi kesalahan saat menyimpan';
+                    app.dialog.alert(msg);
+                },
+            });
+        });
+    }
+
+    // ── Retur Produksi (2026-08-24) ───────────────────────────
+    // Retur DIBUAT di backend-production oleh produksi-apk (POST
+    // /produksi/retur-material, tabel prd_t_retur_produksi(_detail) SHARED
+    // dgn DB yang sama) -- halaman ini murni sisi GUDANG: lihat
+    // Inbox/Riwayat + approve/terima/tolak. Tombol aksi hanya dirender utk
+    // AdminGudang (gate FE murni UX, server tetap 403 -- lihat
+    // StockOutController::{approve,receive,reject}StockOutReturn di
+    // backend-migrasi).
+    const RETUR_STATUS_CFG = {
+        SUBMITTED: { label: 'Submitted', cls: 'mat-status-overstock' },
+        APPROVED: { label: 'Approved', cls: 'mat-status-low' },
+        RECEIVED: { label: 'Received', cls: 'mat-status-ok' },
+        CANCELLED: { label: 'Cancelled', cls: 'mat-status-empty' },
+    };
+    const retur = {
+        tab: 'inbox', // 'inbox' | 'history'
+        list: [],
+        filterStatus: 'all',
+        filterSource: '',
+        filterMonth: new Date().getMonth() + 1,
+        filterYear: new Date().getFullYear(),
+        searchQuery: '',
+        detailId: null,
+    };
+    let returSearchTimer = null;
+
+    function openReturPopup() {
+        retur.tab = 'inbox';
+        jQuery('#sr_list_view').removeClass('hidden');
+        jQuery('#sr_detail_view').addClass('hidden');
+        jQuery('#sr_filter_month').html(buildMonthOptions(retur.filterMonth));
+        jQuery('#sr_filter_year').html(buildYearOptions(retur.filterYear));
+        setReturTab('inbox');
+        app.popup.open('#popup-stockout-retur');
+    }
+
+    function setReturTab(tab) {
+        retur.tab = tab;
+        jQuery('#sr_tab_inbox')
+            .toggleClass('bg-primary text-white', tab === 'inbox')
+            .toggleClass('bg-surface-raised text-ink-muted', tab !== 'inbox');
+        jQuery('#sr_tab_history')
+            .toggleClass('bg-primary text-white', tab === 'history')
+            .toggleClass('bg-surface-raised text-ink-muted', tab !== 'history');
+        jQuery('#sr_filter_status').toggleClass('hidden', tab !== 'inbox');
+        jQuery('#sr_filter_source').toggleClass('hidden', tab !== 'history');
+        fetchReturList();
+    }
+
+    function fetchReturList() {
+        jQuery('#sr_list_table').html('<tr><td colspan="5" class="tbl-empty">Memuat data...</td></tr>');
+        const payload = { warehouse_id: warehouseId() };
+        if (retur.filterMonth) payload.filter_month = retur.filterMonth;
+        if (retur.filterYear) payload.filter_year = retur.filterYear;
+        if (retur.searchQuery) payload.search = retur.searchQuery;
+
+        let url = '/inventory/stock-out/get-stockout-return-inbox';
+        if (retur.tab === 'inbox') {
+            if (retur.filterStatus !== 'all') payload.status_filter = retur.filterStatus;
+        } else {
+            url = '/inventory/stock-out/get-stockout-return-history';
+            if (retur.filterSource) payload.source_type = retur.filterSource;
+        }
+
+        jQuery.ajax({
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + url, dataType: 'JSON', data: payload,
+            success(res) {
+                if (res.status === 1) { retur.list = res.data.retur_list || []; renderReturList(); }
+                else app.dialog.alert('Gagal memuat data: ' + (res.message || ''));
+            },
+            error() { app.dialog.alert('Terjadi kesalahan saat memuat data retur'); },
+        });
+    }
+
+    function renderReturList() {
+        const items = retur.list;
+        if (!items.length) {
+            const msg = retur.tab === 'inbox' ? 'Tidak ada retur yang perlu ditindaklanjuti' : 'Belum ada riwayat retur';
+            jQuery('#sr_list_table').html(`<tr><td colspan="5" class="tbl-empty">${msg}</td></tr>`);
+            return;
+        }
+        jQuery('#sr_list_table').html(items.map((r, i) => {
+            const cfg = RETUR_STATUS_CFG[r.status] || { label: r.status, cls: '' };
+            return `
+        <tr class="${i % 2 !== 0 ? 'bg-surface-raised/50' : ''}">
+          <td class="td-left"><div class="text-primary-brand font-bold">${escHtml(r.retur_number)}</div></td>
+          <td class="td-center font-semibold">${r.retur_date}</td>
+          <td class="td-left font-semibold">${escHtml(r.department_name)}</td>
+          <td class="td-center"><span class="mat-badge ${cfg.cls}">${cfg.label}</span></td>
+          <td class="td-center"><a href="#" class="btn-tbl--detail" data-id="${r.id}">Detail</a></td>
+        </tr>
+      `;
+        }).join(''));
+    }
+
+    function openReturDetail(returId) {
+        retur.detailId = returId;
+        jQuery('#sr_list_view').addClass('hidden');
+        jQuery('#sr_detail_view').removeClass('hidden');
+        jQuery('#sr_det_items').html('<tr><td colspan="3" class="tbl-empty">Memuat data...</td></tr>');
+        jQuery('#sr_det_actions').addClass('hidden');
+        jQuery('#sr_reject_reason').val('');
+
+        jQuery.ajax({
+            type: 'POST', url: APP_CONFIG.API_BASE_URL + '/inventory/stock-out/get-stockout-return-detail', dataType: 'JSON',
+            data: { retur_id: returId },
+            success(res) {
+                if (res.status === 1) renderReturDetail(res.data.retur, res.data.items || []);
+                else { app.dialog.alert('Gagal memuat detail'); backToReturList(); }
+            },
+            error() { app.dialog.alert('Terjadi kesalahan'); backToReturList(); },
+        });
+    }
+
+    function renderReturDetail(header, items) {
+        const cfg = RETUR_STATUS_CFG[header.status] || { label: header.status, cls: '' };
+        jQuery('#sr_det_number').text(header.retur_number);
+        jQuery('#sr_det_status').attr('class', 'mat-badge ' + cfg.cls).text(cfg.label);
+        jQuery('#sr_det_meta').text(
+            `${header.retur_date} — ${header.department_name}${header.source_ref ? ' — ' + header.source_ref : ''}`
+        );
+        jQuery('#sr_det_reason').text(header.reason || '-');
+        jQuery('#sr_det_notes_wrap').toggleClass('hidden', !header.notes);
+        if (header.notes) jQuery('#sr_det_notes').text(header.notes);
+
+        const showRejected = header.status === 'CANCELLED' && header.rejected_reason;
+        jQuery('#sr_det_rejected_wrap').toggleClass('hidden', !showRejected);
+        if (showRejected) {
+            jQuery('#sr_det_rejected_by').text(header.rejected_by || '-');
+            jQuery('#sr_det_rejected_reason').text(header.rejected_reason);
+        }
+
+        jQuery('#sr_det_items').html(!items.length
+            ? '<tr><td colspan="3" class="tbl-empty">Tidak ada item</td></tr>'
+            : items.map((it, i) => `
+        <tr class="${i % 2 !== 0 ? 'bg-surface-raised/50' : ''}">
+          <td class="td-left font-semibold">${escHtml(it.material_name)} <span class="text-[11px] text-ink-muted font-semibold">| ${escHtml((it.unit || '').toUpperCase())}</span></td>
+          <td class="td-right font-bold">${numberFormat(it.qty, 0, ',', '.')}</td>
+          <td class="td-center">${escHtml(it.condition_status)}</td>
+        </tr>
+      `).join(''));
+
+        // Tombol aksi -- HANYA AdminGudang & status yang relevan. Gate FE
+        // murni UX -- server tetap menolak (403/status salah).
+        if (isAdmin() && header.status === 'SUBMITTED') {
+            jQuery('#sr_btn_primary').text('APPROVE').data('action', 'approve');
+            jQuery('#sr_det_actions').removeClass('hidden');
+        } else if (isAdmin() && header.status === 'APPROVED') {
+            jQuery('#sr_btn_primary').text('TERIMA').data('action', 'receive');
+            jQuery('#sr_det_actions').removeClass('hidden');
+        } else {
+            jQuery('#sr_det_actions').addClass('hidden');
+        }
+    }
+
+    function backToReturList() {
+        jQuery('#sr_detail_view').addClass('hidden');
+        jQuery('#sr_list_view').removeClass('hidden');
+        fetchReturList();
+    }
+
+    function submitReturAction(action) {
+        const returId = retur.detailId;
+        const extra = { user_id: userId() };
+        if (action === 'reject') {
+            const reason = jQuery('#sr_reject_reason').val().trim();
+            if (!reason) { app.dialog.alert('Alasan reject wajib diisi.'); return; }
+            extra.reason = reason;
+        }
+        const label = action === 'approve' ? 'Approve retur ini?' : action === 'receive' ? 'Terima retur ini? Stok akan bertambah.' : 'Tolak retur ini?';
+        app.dialog.confirm(label, 'Konfirmasi', () => {
+            jQuery('#sr_btn_primary, #sr_btn_reject').css('opacity', '.5').prop('disabled', true);
+            jQuery.ajax({
+                type: 'POST', url: APP_CONFIG.API_BASE_URL + `/inventory/stock-out/stockout-return/${returId}/${action}`, dataType: 'JSON',
+                data: extra,
+                success(res) {
+                    jQuery('#sr_btn_primary, #sr_btn_reject').css('opacity', '1').prop('disabled', false);
+                    if (res.status === 1) { app.dialog.alert(res.message || 'Berhasil'); openReturDetail(returId); }
+                    else app.dialog.alert('Gagal: ' + (res.message || ''));
+                },
+                error(xhr) {
+                    jQuery('#sr_btn_primary, #sr_btn_reject').css('opacity', '1').prop('disabled', false);
+                    const msg = xhr.status === 403 ? 'Hanya AdminGudang yang boleh melakukan aksi ini.' : 'Terjadi kesalahan';
                     app.dialog.alert(msg);
                 },
             });

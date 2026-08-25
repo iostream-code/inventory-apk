@@ -24,8 +24,10 @@ import * as LogoPage from './pages/logo/logo.js';
 import * as PoPage from './pages/po/po.js';
 
 // TODO iterasi berikutnya (lihat README untuk detail simplifikasi per halaman):
-// retur/replacement (stock-in & stock-out), manual stock in/out, purchase
-// request list, notifikasi FCM, cetak barcode & export Excel/PDF.
+// retur/replacement Stock In (ke supplier + replacement), notifikasi FCM,
+// export Excel/PDF (Stock In/Opname). Retur Produksi (Stock Out), manual
+// stock in/out, purchase request list, dan cetak barcode (Material) SUDAH
+// selesai -- lihat README/ROADMAP.md.
 
 renderShell();
 

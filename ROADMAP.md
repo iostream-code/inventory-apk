@@ -29,7 +29,11 @@ lihat "Status saat ini" di atas)
 
 Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fitur" di
 `README.md`) — porting backend-nya baru relevan setelah fitur frontend-nya ada:
-- Retur & replacement (Stock In/Out), Purchase Request list.
+- Retur & replacement **Stock In** (retur ke supplier + terima replacement) — lebih kompleks
+  dari sisi Stock Out (lihat entri "Selesai" 2026-08-24 di bawah), butuh simplifikasi alur
+  replacement (modul Surat Jalan Purchasing yang jadi dependensinya di backend-production belum
+  pernah dipakai live/0 baris) sebelum diporting. Purchase Request list (approve/reject/cancel/
+  update PR — aksi departemen Purchasing, bukan gudang, tidak ada UI-nya di app ini).
 - History Stock In/Out Manual (`getStockInManualHistory`/`getStockOutManualHistory` versi
   Laravel TIDAK diport bareng Manual Stock In/Out di bawah -- belum ada UI daftar riwayatnya di
   FE, sama alasan endpoint lain yang di-skip di modul ini).
@@ -40,6 +44,133 @@ Fitur-fitur ini juga belum ada di `inventory-apk` **sendiri** (lihat "Status fit
 
 ## ✅ Selesai
 
+- [x] **Fix: `status_penerimaan`/`tanggal_penerimaan`/`keterangan` tidak pernah ditulis saat
+  Terima Barang partner** (2026-08-25) — `DeliveryController::store()`/`addDelivery()` (baik
+  `backend-migrasi/src/Partner/` maupun `backend-production` — dua-duanya dibetulkan, LOCAL
+  cutover sudah ke `backend-migrasi` tapi production build masih ke `backend-production`, lihat
+  "Status saat ini" di atas) SEBELUMNYA cuma update `jumlah_diterima` aggregate di
+  `partner_transaksi`, TIDAK PERNAH menulis `status_penerimaan`/`tanggal_penerimaan`/`keterangan`
+  — padahal `produksi-apk` (`js/partner/approval.js::lihatDetailPenerimaan`) memakai
+  `status_penerimaan != null` utk munculin tombol Approve, jadi tombol itu diam-diam tidak pernah
+  aktif via alur normal.
+  - Sekarang tiap kali ada penerimaan (partial MAUPUN full — bukan cuma saat full, konsisten dgn
+    tombol "Terima" FE yang juga sudah hijau begitu ada penerimaan parsial): `status_penerimaan`
+    di-set `'SUDAH_DITERIMA'`, `tanggal_penerimaan` = `tanggal_diterima` dari request.
+  - `keterangan` diambil dari `t_penjualan_detail_performa.keterangan` (via
+    `partner_transaksi.penjualan_detail_performa_id`) — BUKAN dari form, form "Tambah Penerimaan"
+    di inventory-apk memang tidak punya field catatan.
+
+- [x] **Cetak Barcode (Material)** (2026-08-24) — checkbox per baris (+ "pilih semua" di header)
+  di tabel Master Barang, tombol toolbar `#btn-mat-barcode` (sebelumnya stub alert "segera
+  hadir", ada sejak scaffold app ini) generate 1 file PDF berisi label barcode utk semua material
+  yang dicentang.
+  - **Murni fitur frontend, TIDAK ADA endpoint backend baru** — nilai `barcode` per material
+    sudah dibuat backend saat material dibuat (`MaterialController::generateBarcode()`, pola
+    `8991001`+urutan) dan sudah ikut di response `get-materials` sejak awal (field-nya cuma
+    belum dipakai di tabel/list). Fitur ini murni me-render nilai yang sudah ada.
+  - **Simbologi CODE128, BUKAN EAN13** — nilai barcode `8991001`+urutan TIDAK py check digit &
+    panjangnya bisa lebih dari 12 digit kalau urutan sudah besar, jadi tidak valid sbg EAN-13.
+    CODE128 terima string sepanjang apa pun tanpa syarat checksum.
+  - **Library baru** (belum pernah dipakai di app manapun di workspace ini): `jspdf` (generate
+    PDF client-side) + `jsbarcode` (render CODE128 ke `<canvas>` lepas, tidak perlu di-attach ke
+    DOM, lalu diambil `dataURL`-nya utk `doc.addImage()`).
+  - **`src/lib/pdfSave.js`** (baru, generic — bukan cuma dipakai fitur ini) — port 1:1 dari
+    `purchase-finance-apk/src/js/pdfReport.js` (fungsi `isCordova`/`waitForDeviceReady`/
+    `browserDownload`/`cordovaSaveAndOpen`/`savePdf`, pola yang sudah terbukti jalan di produksi
+    sana): browser biasa → `<a download>`; Cordova → tulis blob ke `cordova.file.dataDirectory`
+    lalu buka via `cordova-plugin-file-opener2`, dgn 2 lapis fallback (`window.open(_system)`,
+    lalu base64 data URI via InAppBrowser) kalau fileOpener2 gagal/tidak ada PDF reader.
+    Notifikasi pakai `app.dialog.alert`/`app.toast` (bukan modul `Toast` terpisah spt di
+    `purchase-finance-apk` — app ini sudah py `app.toast` dari `app-shim.js`).
+  - **2 plugin Cordova baru ditambahkan**: `cordova-plugin-file` (8.1.3) &
+    `cordova-plugin-file-opener2` (4.0.0), didaftarkan di `config.xml` + `package.json`
+    (`cordova plugin add ... --save`) — app ini belum pernah `cordova platform add android`
+    (baru py platform `browser`), jadi belum ada proyek native yang perlu di-`prepare` ulang;
+    plugin akan otomatis ter-install begitu platform Android ditambahkan nanti.
+  - **`src/lib/barcodeLabels.js`** (baru) — `printBarcodeLabels(materials)`, grid label 3 kolom x
+    7 baris (21 label/lembar A4, ~63.5x38mm/label — ukuran umum kertas sticker "3x7" yang banyak
+    dijual, MIRIP tapi bukan dijamin identik dgn kertas fisik yang benar-benar dipakai gudang;
+    kalau beda ukuran, tinggal ubah 3 konstanta `COLS`/`ROWS`/`PAGE_MARGIN` di file ini, tidak ada
+    tempat lain yang perlu disentuh). Tiap label: nama material (maks 2 baris, dipotong kalau
+    kepanjangan) + kode + gambar barcode (JsBarcode `displayValue:true` sudah menulis angkanya di
+    bawah bar, tidak digambar manual terpisah). Material tanpa `barcode` (field `null`/kosong)
+    ditandai teks merah "Tanpa barcode", TIDAK bikin fitur gagal/skip material itu dari PDF.
+  - **Dynamic `import()`, BUKAN static import** di `material.js` — `jspdf` (+ dependensi
+    internalnya, `html2canvas`/`dompurify`, ikut kebawa walau tidak dipakai lewat method
+    `doc.html()`) berat (~460KB/143KB gzip). App ini SPA hash-router 1-bundle-utk-semua-halaman
+    (beda dari `purchase-finance-apk` yang MPA, 1 bundle per halaman) — static import akan
+    menggelembungkan bundle utama app (dicoba: 315KB→781KB gzip 74→220KB) walau fitur ini cuma
+    dipakai di 1 halaman. Dynamic import di dalam handler klik tombol memisahkannya jadi chunk
+    terpisah yang cuma diunduh/parse saat tombol benar-benar dipakai — bundle utama tetap
+    ~318KB, chunk `barcodeLabels-*.js` (460KB/143KB gzip) lazy-load terpisah.
+  - **Seleksi disimpan sbg `Map(id -> objek material)`, bukan `Set(id)`** — supaya tetap dibawa
+    kalau user ganti search/filter di antara mencentang & mengklik cetak (`state.data` diganti
+    tiap `fetchMaterials()`, jadi lookup ulang by-id ke `state.data` bisa gagal kalau materialnya
+    sudah tidak ada di hasil filter terbaru).
+  - **Diverifikasi via Playwright** (dev server + localStorage auth injection + `page.route()`
+    mock 3 endpoint Material, pola sama verifikasi sebelumnya di workspace ini) — screenshot &
+    render PDF-ke-PNG (`pdftoppm`) mengonfirmasi: kolom checkbox + "pilih semua" render benar,
+    tooltip tombol update jadi "Cetak Barcode (N dipilih)", alert muncul kalau klik cetak tanpa
+    seleksi, dialog konfirmasi tampil sebelum generate, PDF ter-generate & ter-download (event
+    `download` Playwright tertangkap, nama file `Barcode-Material-{n}item-{tanggal}.pdf`), isi
+    PDF visual benar (3 label per baris, barcode CODE128 terbaca jelas + angka di bawahnya, nama
+    panjang ke-wrap 2 baris, material tanpa barcode tertulis "Tanpa barcode" tanpa merusak
+    layout). Tidak ada console error selain 404 `cordova.js` (memang cuma ada di WebView Cordova
+    asli, bukan regresi).
+- [x] **Retur Produksi (Stock Out)** (2026-08-24) — sisi GUDANG dari alur retur barang dari
+  Produksi ke gudang: Inbox (list SUBMITTED/APPROVED yang perlu ditindaklanjuti, FIFO), Riwayat
+  (semua status + filter sumber Issue/Manual), Detail, dan aksi Approve/Terima/Tolak. Retur
+  **DIBUAT** di `backend-production` lewat `produksi-apk` (`POST /produksi/retur-material`,
+  endpoint itu SENGAJA TIDAK diporting — tabel `prd_t_retur_produksi(_detail)` SHARED dgn DB yang
+  sama, jadi baris yang dibuat di sana langsung terbaca di `backend-migrasi`). Port dari
+  `App\Services\Inventory\StockOut\ReturProduksiService` (`backend-production`, Eloquent).
+  - **Backend** (`backend-migrasi/src/Inventory/Controllers/StockOutController.php`, 6 method
+    baru: `getStockOutReturn{Inbox,History,Detail}`/`{approve,receive,reject}StockOutReturn`,
+    endpoint `/inventory/stock-out/{get-stockout-return-inbox,get-stockout-return-history,
+    get-stockout-return-detail,stockout-return/{id}/{approve,receive,reject}}`). State machine
+    dipertahankan persis: SUBMITTED →approve()→ APPROVED →receive()→ RECEIVED (SATU-SATUNYA titik
+    stok naik, lewat `StockPosting::postIn()`, reuse apa adanya); reject boleh dari SUBMITTED
+    maupun APPROVED → CANCELLED, TIDAK PERNAH ada gerak stok di kedua cabang itu (beda dari sisi
+    Stock-In/Purchase yang butuh rollback kalau reject dari APPROVED, karena di sini stok memang
+    belum pernah bergerak sebelum RECEIVED). GOOD/DAMAGED/EXPIRED tetap sama-sama menambah
+    `qty_on_hand`, beda cuma `transaction_type` ledger (`RECEIVE_RETUR_DAMAGED` vs
+    `RECEIVE_RETUR_PRODUKSI`) — tidak ada gudang karantina terpisah, dikutip apa adanya dari versi
+    asli. Reversal `qty_issued` di `prd_t_req_material_detail` (reuse `recalculateReqStatus()`
+    yang sudah ada di file ini) HANYA terjadi kalau `source_type=ISSUE` DAN
+    `reason IN (DAMAGED, WRONG_SPEC)` — EXCESS/OTHER TIDAK direversal, dikutip apa adanya.
+  - **[PERBAIKAN KEAMANAN dari versi asli, sadar]** approve/receive/reject AdminGudang-only (role
+    dari JWT) — versi Laravel asli endpoint2 ini **TANPA AUTH SAMA SEKALI** (route top-level,
+    tidak ada middleware apa pun, `user_id` dipercaya mentah dari body). Endpoint baca
+    (inbox/history/detail) tidak digate role, sama seperti endpoint baca lain di modul ini. Tidak
+    ada doc-number baru digenerate — `retur_number` (`RTP-{NNNNN}`) sudah dibuat duluan oleh
+    `produksi-apk`/`backend-production`.
+  - **Skema**: `prd_t_retur_produksi` ternyata TIDAK punya kolom `rejected_at`/`rejected_by`/
+    `rejected_reason` di DB produksi (dicek `SHOW COLUMNS` langsung, 2026-08-24) walau Eloquent
+    model & service asli jelas memakainya — drift dari `db_dump.sql` yang basi. Ditambahkan via
+    `backend-migrasi/database/inventory/01_add_retur_produksi_reject_columns.sql` (file skema
+    **pertama** utk modul Inventory, sudah dijalankan ke produksi — sebelumnya modul ini tidak
+    punya folder `database/inventory/` sama sekali krn murni reuse tabel shared).
+  - **Frontend** (`stock-out.js`/`stock-out.html`) — tombol toolbar baru `#btn-so-retur` (icon
+    inbox, terlihat SEMUA role Gudang — beda dari tombol Manual yang AdminGudang-only, karena
+    melihat inbox/riwayat boleh siapa saja), buka popup `#popup-stockout-retur` berisi 2 tab
+    internal (Inbox/Riwayat, bukan route terpisah) + drill-down ke Detail (tombol "← Kembali").
+    Tombol aksi (Approve/Terima/Tolak) hanya dirender kalau `isAdmin()` DAN status sesuai — gate
+    FE murni UX, server tetap 403/menolak status salah. Alasan reject dibaca dari `<input>` polos
+    di dalam popup (`dialog.js` app ini tidak punya `app.dialog.prompt()`), divalidasi wajib diisi
+    di JS sebelum kirim (server juga menolak 422 kalau kosong).
+  - **Diverifikasi live** thd database produksi (bukan cuma `php -l`) — semua tabel terkait
+    (`prd_t_retur_produksi(_detail)`, `prd_t_req_material(_detail)`, `prd_t_material_issue
+    (_detail)`) ternyata **0 baris** di produksi (fitur ini belum pernah benar-benar dipakai
+    live), jadi dibangun 1 rantai data test self-contained (1 request+issue asli + 4 baris retur:
+    ISSUE/DAMAGED → approve+receive, cek reversal `qty_issued` & status `prd_t_req_material`
+    benar; ISSUE/EXCESS → approve+receive, cek TIDAK ada reversal; MANUAL/OTHER → reject dari
+    SUBMITTED (reason kosong ditolak 422 dulu); MANUAL/OTHER → approve lalu reject dari APPROVED)
+    thd 1 material nyata (`MAT-00002`, stok awal 1425). Role gate dicek StaffGudang → 403 di
+    approve/receive/reject, 200 di inbox/history/detail; tanpa token → 401. Transisi status
+    invalid dicek ditolak 400 (mis. approve retur yang sudah RECEIVED). Semua baris test
+    (`prd_t_retur_produksi(_detail)`, `prd_t_req_material(_detail)`, `prd_t_material_issue
+    (_detail)`, `wh_log_stock_mutation`) di-hard-delete + `wh_t_stock_balance` dikembalikan manual
+    ke nilai semula setelahnya.
 - [x] **Stock In/Out Manual** (2026-08-23) — tombol "+ Tambah" di toolbar tab Stock In & Stock
   Out (`stock-in.js`/`stock-out.js`), **AdminGudang-only** (Manajer/SPV, sama role yang dipakai
   approve Opname) — permintaan user, transaksi stok ad-hoc DI LUAR PO/request produksi (mis.
