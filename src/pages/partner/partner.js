@@ -8,6 +8,23 @@ function escHtml(str) {
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function formatCurrency(n) { return 'Rp ' + numberFormat(n || 0, 0, ',', '.'); }
+// Foto referensi produk (t_penjualan_detail_performa.gambar) -- disajikan dari
+// backend-production langsung (bukan lewat backend-migrasi), sama pola dgn
+// produksi-apk/www/js/partner/approval.js (BASE_API + 'performa_image/' + gambar).
+function fotoReferensiUrl(gambar) {
+    return gambar ? `${APP_CONFIG.IMAGE_BASE_URL}/performa_image/${gambar}` : null;
+}
+// "Hari ini >= tgl_deadline" -- dibandingkan per-tanggal (jam diabaikan),
+// supaya berkedip pas tepat di hari deadline, bukan cuma sesudahnya.
+function isDeadlineOverdue(tglDeadline) {
+    if (!tglDeadline) return false;
+    const deadline = new Date(tglDeadline);
+    if (isNaN(deadline)) return false;
+    const today = new Date();
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const deadlineDateOnly = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+    return todayDateOnly >= deadlineDateOnly;
+}
 
 // Kelas tombol aksi bergaya kotak, dipakai konsisten di SELURUH menu
 // Partner (list utama, popup History, popup Terima Barang). Abu-abu
@@ -62,12 +79,17 @@ function buildPartnerRow(d) {
         ? BTN_INFO
         : (isPartiallyReceived ? BTN_SUCCESS : BTN_DEFAULT);
 
+    // Overdue cuma relevan buat transaksi yang masih aktif -- item History
+    // (sudah di-ACC) tidak perlu ikut berkedip walau tgl_deadline-nya sudah lewat.
+    const overdue = !isApproved(d) && isDeadlineOverdue(d.tgl_deadline);
+
     return `
     <tr class="${hasActiveRetur ? 'bg-red-50' : ''}">
       <td class="td-left font-semibold whitespace-nowrap">${escHtml(spkCode(d))}</td>
       <td class="td-left font-semibold whitespace-nowrap">${escHtml(d.client_nama || '-')}</td>
       <td class="td-left font-semibold whitespace-nowrap">${escHtml(d.nama_partner || '-')}</td>
-      <td class="td-center whitespace-nowrap">${d.tgl_deadline ? formatDateShort(d.tgl_deadline) : '-'}</td>
+      <td class="td-left whitespace-nowrap">${escHtml(d.produk_keterangan_kustom || d.penjualan_jenis || '-')}</td>
+      <td class="td-center whitespace-nowrap ${overdue ? 'deadline-overdue' : ''}">${d.tgl_deadline ? formatDateShort(d.tgl_deadline) : '-'}</td>
       <td class="td-left whitespace-nowrap">
         ${!isFullyReceived ? `<a href="#" class="btn-open-material ${BTN_BASE} mr-1.5 ${materialBtnClass}" data-id="${d.id_partner_transaksi}" data-name="${escHtml(d.nama_partner)}">Material</a>` : ''}
         <a href="#" class="btn-open-receiving ${BTN_BASE} ${terimaBtnClass}" data-id="${d.id_partner_transaksi}" data-name="${escHtml(d.nama_partner)}">${isFullyReceived ? 'Bukti' : 'Terima'}</a>
@@ -186,7 +208,7 @@ export function mount(container) {
         jQuery('#data_history_partner').html(
             state.filteredHistoryData.length
                 ? state.filteredHistoryData.map(buildPartnerRow).join('')
-                : '<tr><td colspan="5" class="tbl-empty">Belum ada history</td></tr>'
+                : '<tr><td colspan="6" class="tbl-empty">Belum ada history</td></tr>'
         );
     }
 
@@ -213,7 +235,7 @@ export function mount(container) {
         jQuery('#jumlah_data_partner').text(total);
 
         if (!pageData.length) {
-            jQuery('#data_partner').html('<tr><td colspan="5" class="tbl-empty">Tidak ada data partner</td></tr>');
+            jQuery('#data_partner').html('<tr><td colspan="6" class="tbl-empty">Tidak ada data partner</td></tr>');
         } else {
             jQuery('#data_partner').html(pageData.map(buildPartnerRow).join(''));
         }
@@ -416,6 +438,7 @@ export function mount(container) {
         currentPartnerTransaksiId: null,
         currentPartnerName: null,
         currentSpkCode: null,
+        currentGambar: null, // t_penjualan_detail_performa.gambar -- foto referensi produk buat kroscek visual saat input Terima Barang
         currentQuantity: 0,
         receivingList: [],
         tempReceivingData: null,
@@ -432,11 +455,15 @@ export function mount(container) {
         RECEIVING_STATE.currentPartnerTransaksiId = partnerId;
         RECEIVING_STATE.currentPartnerName = partnerName || '-';
         RECEIVING_STATE.currentSpkCode = spkCode(d);
+        RECEIVING_STATE.currentGambar = d.gambar || null;
         RECEIVING_STATE.currentQuantity = d.jumlah || 0;
         RECEIVING_STATE.readOnly = readOnly;
 
         jQuery('#nama_partner_receiving').text(RECEIVING_STATE.currentPartnerName);
         jQuery('#receiving-spk-code').text(RECEIVING_STATE.currentSpkCode);
+        const receivingRefUrl = fotoReferensiUrl(RECEIVING_STATE.currentGambar);
+        jQuery('#receiving_ref_gambar_wrap').toggleClass('hidden', !receivingRefUrl);
+        if (receivingRefUrl) jQuery('#receiving_ref_gambar_img').attr('src', receivingRefUrl);
         jQuery('#receiving-quantity').text(numberFormat(RECEIVING_STATE.currentQuantity, 0, ',', '.'));
         jQuery('#receiving_table_body').html('<tr><td colspan="6" class="tbl-empty">Memuat data...</td></tr>');
         // Item History = sudah di-ACC -> tombol "+ Tambah Penerimaan" disembunyikan.
@@ -547,6 +574,11 @@ export function mount(container) {
         jQuery('#upload_penerima_display').text(localStorage.getItem('username') || '-');
         clearUploadPhotos();
 
+        // Foto referensi produk (SPK) -- kroscek dobel sebelum input jumlah diterima.
+        const refUrl = fotoReferensiUrl(RECEIVING_STATE.currentGambar);
+        jQuery('#ref_gambar_wrap').toggleClass('hidden', !refUrl);
+        if (refUrl) jQuery('#ref_gambar_img').attr('src', refUrl);
+
         // Sisipkan input tanggal & jumlah di atas tombol submit (dibuat sekali).
         if (!jQuery('#input_tanggal_terima_new').length) {
             jQuery(`
@@ -575,6 +607,10 @@ export function mount(container) {
         jQuery('#preview_bukti_penerimaan_empty, #preview_bukti_dokumen_empty').removeClass('hidden');
     }
 
+    jQuery('#ref_gambar_img, #receiving_ref_gambar_img').on('click', function () {
+        const src = jQuery(this).attr('src');
+        if (src) app.photoBrowser.create({ photos: [src] }).open();
+    });
     jQuery('#input_bukti_penerimaan').on('change', function () {
         if (!this.files[0]) return;
         uploadPhoto.bukti = this.files[0];

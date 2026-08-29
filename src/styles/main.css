@@ -64,6 +64,18 @@
   }
 }
 
+/* Kolom Deadline yang sudah lewat/jatuh tempo (menu Partner, hanya baris
+   aktif -- lihat deadline-overdue di partner.js) -- background sel merah
+   terang, statis (tanpa animasi). */
+/* Selector se-spesifik ".tbl-dark tbody td" (bukan cuma ".deadline-overdue")
+   -- kalau tidak, color: ink-primary dari situ menang lawan class tunggal
+   di bawah ini walau ditulis belakangan, bikin teks keliatan hitam. */
+.tbl-dark tbody td.deadline-overdue {
+  background-color: #ff0000;
+  color: #ffffff;
+  font-weight: 700;
+}
+
 /* =============================================================================
    DESIGN TOKENS
    Disalin dari inventory-app/src/styles/main.css, --color-primary/-light diganti

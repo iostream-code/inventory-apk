@@ -30,13 +30,14 @@
                             <th class="td-left">SPK</th>
                             <th class="td-left">Perusahaan</th>
                             <th class="td-left">Partner</th>
+                            <th class="td-left">Detail Item</th>
                             <th class="td-center">Deadline</th>
                             <th class="td-left">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="data_history_partner">
                         <tr>
-                            <td colspan="5" class="tbl-empty">Belum ada history</td>
+                            <td colspan="6" class="tbl-empty">Belum ada history</td>
                         </tr>
                     </tbody>
                 </table>
@@ -146,6 +147,13 @@
         </div>
 
         <div class="p-3">
+            <div id="receiving_ref_gambar_wrap" class="hidden mb-3">
+                <img id="receiving_ref_gambar_img"
+                    class="w-full max-h-48 object-contain rounded-md border border-ink-faint cursor-zoom-in" />
+                <p class="text-[11px] text-ink-secondary mt-1">Foto referensi produk (dari SPK) -- tap untuk
+                    perbesar.</p>
+            </div>
+
             <div class="flex items-center justify-between mb-2.5">
                 <div class="flex items-center gap-1.5">
                     <span class="section-title">Data</span>
@@ -205,6 +213,14 @@
                         id="upload_jumlah_display" class="font-semibold">-</span></div>
                 <div class="flex justify-between"><span class="text-ink-secondary">Penerima</span><span
                         id="upload_penerima_display" class="font-semibold">-</span></div>
+            </div>
+
+            <div id="ref_gambar_wrap" class="hidden">
+                <label class="mat-label">Foto Referensi Produk (dari SPK)</label>
+                <img id="ref_gambar_img"
+                    class="w-full max-h-40 object-contain rounded-md border border-ink-faint cursor-zoom-in" />
+                <p class="text-[11px] text-ink-secondary mt-1">Cocokkan dengan barang fisik sebelum menyimpan --
+                    tap foto untuk perbesar.</p>
             </div>
 
             <div>
@@ -414,13 +430,14 @@
                         <th class="td-left">SPK</th>
                         <th class="td-left">Perusahaan</th>
                         <th class="td-left">Partner</th>
+                        <th class="td-left">Detail Item</th>
                         <th class="td-center">Deadline</th>
                         <th class="td-left">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="data_partner">
                     <tr>
-                        <td colspan="5" class="tbl-empty">Memuat data...</td>
+                        <td colspan="6" class="tbl-empty">Memuat data...</td>
                     </tr>
                 </tbody>
             </table>
