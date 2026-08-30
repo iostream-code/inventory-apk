@@ -22,6 +22,7 @@ import * as StockOutPage from './pages/stock-out/stock-out.js';
 import * as PartnerPage from './pages/partner/partner.js';
 import * as LogoPage from './pages/logo/logo.js';
 import * as PoPage from './pages/po/po.js';
+import * as ReturPage from './pages/retur/retur.js';
 
 // TODO iterasi berikutnya (lihat README untuk detail simplifikasi per halaman):
 // retur/replacement Stock In (ke supplier + replacement), notifikasi FCM,
@@ -52,6 +53,7 @@ Router.register('/stock-out', authedRoute(StockOutPage));
 Router.register('/partner', authedRoute(PartnerPage));
 Router.register('/logo', authedRoute(LogoPage));
 Router.register('/po', authedRoute(PoPage));
+Router.register('/retur', authedRoute(ReturPage));
 
 startRouter(checkLogin() ? '/home' : '/login');
 

@@ -36,6 +36,9 @@ const STOCK_PATHS = [...STOCK_SUBTABS.map((t) => t.path), '/material'];
 const PRIMARY_TABS = [
   { key: 'stock', label: 'STOCK', group: STOCK_PATHS, defaultPath: '/home' },
   { key: 'po', label: 'PO', path: '/po' },
+  // BARU (rombak alur Retur/PO 2026-08-30): "Ajukan Retur PO", terpisah dari
+  // tab "PO" (halaman/state beda -- lihat src/pages/retur/retur.js).
+  { key: 'retur', label: 'RETUR', path: '/retur' },
   { key: 'partner', label: 'PARTNER', path: '/partner' },
   { key: 'logo', label: 'LOGO', path: '/logo' },
 ];

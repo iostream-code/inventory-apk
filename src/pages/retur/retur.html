@@ -1,0 +1,162 @@
+<!-- ============================================================ -->
+<!-- POPUP: AJUKAN RETUR                                          -->
+<!-- ============================================================ -->
+<div id="popup-retur-request"
+    class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+    <div class="app-overlay-panel bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+            <div>
+                <div class="font-bold text-ink-primary">AJUKAN RETUR</div>
+                <div class="text-xs text-ink-secondary">Retur barang dari PO yang sudah diterima</div>
+            </div>
+            <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+        </div>
+
+        <div class="p-3">
+            <div class="mb-3">
+                <label class="mat-label">PILIH PO</label>
+                <select id="retur_req_po" class="mat-input">
+                    <option value="">-- Pilih PO --</option>
+                </select>
+                <p class="mt-1 text-[11px] text-ink-muted">Cuma PO yang sudah (sebagian) diterima dan masih punya sisa
+                    yang bisa diretur yang ditampilkan.</p>
+            </div>
+
+            <div class="tbl-wrap mb-3">
+                <table class="tbl-dark tbl-bordered">
+                    <thead>
+                        <tr>
+                            <th class="td-left">BARANG</th>
+                            <th class="td-center">SISA</th>
+                            <th class="td-center">QTY RETUR</th>
+                            <th class="td-center">ALASAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="retur_req_items">
+                        <tr>
+                            <td colspan="4" class="tbl-empty">Pilih PO terlebih dahulu</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mb-3">
+                <label class="mat-label">CATATAN / ALASAN RETUR <span class="text-danger">*</span></label>
+                <textarea id="retur_req_notes" rows="2" class="mat-input" style="height:auto;padding-top:10px;"
+                    placeholder="Jelaskan alasan retur..."></textarea>
+            </div>
+
+            <button id="retur_req_btn_submit" class="btn-action btn-action--primary">AJUKAN RETUR</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- POPUP: DETAIL RETUR (read-only)                              -->
+<!-- ============================================================ -->
+<div id="popup-retur-detail"
+    class="app-popup hidden fixed inset-0 z-[100] items-end sm:items-center justify-center bg-black/40">
+    <div class="app-overlay-panel bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-ink-faint sticky top-0 bg-white">
+            <div>
+                <div id="retur_det_number" class="font-bold text-ink-primary">-</div>
+                <div class="text-xs text-ink-secondary" id="retur_det_meta">-</div>
+            </div>
+            <button class="popup-close text-ink-secondary text-xl leading-none">&times;</button>
+        </div>
+        <div class="p-3">
+            <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                <span id="retur_det_status_badge" class="mat-badge">-</span>
+            </div>
+            <div id="retur_det_rejected_wrap"
+                class="hidden mb-3 text-sm text-danger bg-red-50 rounded-md p-2.5">
+                <div class="text-[10px] font-bold uppercase tracking-wide mb-0.5">Alasan Ditolak</div>
+                <span id="retur_det_rejected_reason"></span>
+            </div>
+            <div id="retur_det_notes_wrap"
+                class="hidden mb-3 text-sm text-ink-secondary bg-surface-raised rounded-md p-2.5">
+                <span id="retur_det_notes"></span>
+            </div>
+            <div class="tbl-wrap">
+                <table class="tbl-dark tbl-bordered">
+                    <thead>
+                        <tr>
+                            <th class="td-left">BARANG</th>
+                            <th class="td-center">QTY RETUR</th>
+                            <th class="td-center">DIGANTI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="retur_det_items">
+                        <tr>
+                            <td colspan="3" class="tbl-empty">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE CONTENT                                                 -->
+<!-- ============================================================ -->
+<div class="p-3 pb-0">
+    <div class="card-surface p-3.5">
+        <div class="flex items-center gap-2.5 mb-2.5 flex-wrap">
+            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <span class="section-title">Data</span>
+                <span class="fs-14 text-ink-faint">|</span>
+                <span id="retur_count" class="section-count">0</span>
+            </div>
+            <button id="btn-retur-refresh" title="Refresh" class="icon-btn icon-btn--primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M21 2v6h-6" />
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                    <path d="M3 22v-6h6" />
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                </svg>
+            </button>
+            <button id="btn-retur-add" title="Ajukan Retur" class="icon-btn icon-btn--primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="search-input-wrap">
+            <input id="retur_search" type="text" placeholder="Cari No. Retur / No. PO..." class="search-input">
+            <svg class="search-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+            </svg>
+        </div>
+    </div>
+</div>
+
+<div class="p-3">
+    <div class="card-surface overflow-hidden">
+        <div class="tbl-wrap">
+            <table class="tbl-dark tbl-bordered">
+                <thead>
+                    <tr>
+                        <th class="td-center" style="width:6%;">NO</th>
+                        <th class="td-left">NO. RETUR</th>
+                        <th class="td-center">TGL</th>
+                        <th class="td-center">PO</th>
+                        <th class="td-center">STATUS</th>
+                        <th class="td-center">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody id="retur_table">
+                    <tr>
+                        <td colspan="6" class="tbl-empty">Memuat data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

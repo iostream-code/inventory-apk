@@ -29,6 +29,18 @@ const PRIORITY_CFG = {
   URGENT: { label: 'URGENT', cls: 'mat-status-empty' },
 };
 
+// BARU (rombak alur Retur/PO 2026-08-30): status level-PO (bukan PR) --
+// APPROVED/DRAFT/SUBMITTED dst sudah tercermin dari STATUS_CFG (PR) di atas,
+// jadi cuma perlu status2 setelah PR di-approve (PO lahir) sampai selesai.
+// mat-status-overstock (biru) dipakai utk RECEIVED = "selesai" -- konsisten
+// dgn produksi-apk (PO_STATUS_COLOR.RECEIVED = #60a5fa, biru juga).
+const PO_STATUS_CFG = {
+  READY: { label: 'PO SIAP', cls: 'mat-status-ok' },
+  SENT: { label: 'PO DIKIRIM', cls: 'mat-status-low' },
+  PARTIAL_RECEIVED: { label: 'PO SEBAGIAN', cls: 'mat-status-low' },
+  RECEIVED: { label: 'SELESAI', cls: 'mat-status-overstock' },
+};
+
 /**
  * Tab PO -- port dari popup "Request PO"/"Daftar Request Order" di
  * inventory/www/js/home.js (F7 lama, satu-satunya versi yang PERNAH benar2
@@ -56,6 +68,7 @@ export function mount(container) {
   };
   // draftItems: Map material_id -> { material_id, name, unit_code, current_stock, butuh_po, qty }
   let draftItems = {};
+  let reqSearchTimer = null;
 
   // ── Month/Year filter ────────────────────────────────────
   function buildMonthOptions(selected) {
@@ -109,6 +122,32 @@ export function mount(container) {
     const id = jQuery(this).data('id');
     delete draftItems[id];
     renderDraftItems();
+  });
+
+  // ── Tombol "+" di samping Refresh: buat Request PO baru dari nol ──
+  jQuery('#btn-po-add').on('click', () => {
+    draftItems = {};
+    openRequestPopup();
+  });
+  jQuery('#po_req_search').on('input', function () {
+    clearTimeout(reqSearchTimer);
+    const kw = jQuery(this).val();
+    reqSearchTimer = setTimeout(() => searchMaterials(kw), 250);
+  });
+  jQuery('#po_req_search_results').on('click', '.po-search-result-item', function () {
+    const id = jQuery(this).data('id');
+    if (draftItems[id]) return; // sudah ditambahkan
+    draftItems[id] = {
+      material_id: id,
+      name: jQuery(this).data('name'),
+      unit_code: jQuery(this).data('unit'),
+      current_stock: jQuery(this).data('stock'),
+      butuh_po: 0,
+      qty: 1,
+    };
+    renderDraftItems();
+    jQuery('#po_req_search').val('');
+    hideSearchResults();
   });
 
   // ── Data loading: list Request PO ────────────────────────
@@ -169,13 +208,17 @@ export function mount(container) {
     jQuery('#po_table').html(state.filtered.map((pr, i) => {
       const statusCfg = STATUS_CFG[pr.status] || { label: pr.status, cls: 'mat-status-overstock' };
       const prioCfg = PRIORITY_CFG[pr.priority] || { label: pr.priority, cls: 'mat-status-overstock' };
+      const poCfg = pr.po_status ? PO_STATUS_CFG[pr.po_status] : null;
       return `
         <tr class="${i % 2 !== 0 ? 'bg-surface-raised/50' : ''}">
           <td class="td-center font-semibold">${i + 1}</td>
           <td class="td-left"><div class="text-primary-brand font-bold">${escHtml(pr.pr_number)}</div></td>
           <td class="td-center font-semibold">${formatDateShort(pr.pr_date)}</td>
           <td class="td-center"><span class="mat-badge ${prioCfg.cls}">${prioCfg.label}</span></td>
-          <td class="td-center"><span class="mat-badge ${statusCfg.cls}">${statusCfg.label}</span></td>
+          <td class="td-center">
+            <span class="mat-badge ${statusCfg.cls}">${statusCfg.label}</span>
+            ${poCfg ? `<div class="mt-1"><span class="mat-badge ${poCfg.cls}">${poCfg.label}</span></div>` : ''}
+          </td>
           <td class="td-center"><a href="#" class="btn-tbl--pr-detail" data-id="${pr.id}">DETAIL</a></td>
         </tr>
       `;
@@ -194,6 +237,23 @@ export function mount(container) {
     jQuery('#po_det_meta').text(`${formatDateShort(pr.pr_date)} · Diminta oleh: ${pr.requester_name || '-'}`);
     jQuery('#po_det_status_badge').attr('class', `mat-badge ${statusCfg.cls}`).text(statusCfg.label);
     jQuery('#po_det_priority_badge').attr('class', `mat-badge ${prioCfg.cls}`).text(prioCfg.label);
+
+    // BARU: badge status PO (READY/SENT/PARTIAL_RECEIVED/RECEIVED) + jadwal
+    // (deadline/estimasi), diisi User Pusat di produksi-apk. Hanya tampil
+    // kalau PO-nya sudah lahir dari PR ini (po_status terisi).
+    const poCfg = pr.po_status ? PO_STATUS_CFG[pr.po_status] : null;
+    if (poCfg) {
+      jQuery('#po_det_po_status_badge').attr('class', `mat-badge ${poCfg.cls}`).text(poCfg.label).removeClass('hidden');
+    } else {
+      jQuery('#po_det_po_status_badge').addClass('hidden');
+    }
+    if (pr.po_deadline || pr.po_expected_delivery) {
+      jQuery('#po_det_deadline').text(pr.po_deadline ? formatDateShort(pr.po_deadline) : '-');
+      jQuery('#po_det_expected_delivery').text(pr.po_expected_delivery ? formatDateShort(pr.po_expected_delivery) : '-');
+      jQuery('#po_det_schedule_wrap').removeClass('hidden');
+    } else {
+      jQuery('#po_det_schedule_wrap').addClass('hidden');
+    }
 
     if (pr.notes) {
       jQuery('#po_det_notes').text(pr.notes);
@@ -242,14 +302,55 @@ export function mount(container) {
   }
 
   function openRequestPopup() {
-    if (!Object.keys(draftItems).length) {
-      app.dialog.alert('Pilih minimal 1 barang di halaman Data (Home) terlebih dahulu.');
-      return;
-    }
     renderDraftItems();
     jQuery('#po_req_priority').val('NORMAL');
     jQuery('#po_req_notes').val('');
+    jQuery('#po_req_search').val('');
+    hideSearchResults();
     app.popup.open('#popup-po-request');
+  }
+
+  // ── Cari & tambah barang manual (dipicu tombol "+" di samping Refresh) ──
+  function searchMaterials(keyword) {
+    if (!keyword || !keyword.trim()) { hideSearchResults(); return; }
+    jQuery.ajax({
+      type: 'POST',
+      url: APP_CONFIG.API_BASE_URL + '/inventory/material/get-materials',
+      dataType: 'JSON',
+      data: { warehouse_id: warehouseId(), search: keyword.trim() },
+      success(res) {
+        if (res.status === 1) renderSearchResults(res.data.materials || []);
+        else hideSearchResults();
+      },
+      error() { hideSearchResults(); },
+    });
+  }
+
+  function renderSearchResults(materials) {
+    if (!materials.length) {
+      jQuery('#po_req_search_results')
+        .html('<div class="p-3 text-sm text-ink-secondary text-center">Tidak ada barang cocok</div>')
+        .removeClass('hidden');
+      return;
+    }
+    jQuery('#po_req_search_results').html(materials.map((m) => {
+      const unit = (m.unit_code || '').toUpperCase();
+      const already = !!draftItems[m.id];
+      return `
+        <div class="po-search-result-item flex items-center justify-between px-3 py-2 border-b border-ink-faint last:border-0 ${already ? 'opacity-50' : 'cursor-pointer hover:bg-surface-raised'}"
+             data-id="${m.id}" data-name="${escHtml(m.name)}" data-unit="${escHtml(unit)}" data-stock="${m.current_stock || 0}">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-ink-primary truncate">${escHtml(m.name)}</div>
+            <div class="text-[11px] text-ink-secondary">Stok: ${numberFormat(m.current_stock || 0, 0, ',', '.')} ${unit}</div>
+          </div>
+          <span class="text-primary-brand font-bold text-lg leading-none flex-shrink-0 ml-2">${already ? '&check;' : '+'}</span>
+        </div>
+      `;
+    }).join('')).removeClass('hidden');
+  }
+
+  function hideSearchResults() {
+    jQuery('#po_req_search_results').addClass('hidden').empty();
   }
 
   function renderDraftItems() {
@@ -258,7 +359,6 @@ export function mount(container) {
 
     if (!items.length) {
       jQuery('#po_req_items').html('<tr><td colspan="5" class="tbl-empty">Tidak ada barang dipilih</td></tr>');
-      app.popup.close('#popup-po-request');
       return;
     }
 
